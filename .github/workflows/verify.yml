@@ -13,16 +13,16 @@ env:
   SANITY_PROJECT_ID: 85i3osnk
   SANITY_DATASET: production
 
-# This org allows only GitHub-owned actions and requires them pinned to a
-# commit SHA, so pnpm/action-setup is unavailable. Corepack ships with Node and
-# reads the `packageManager` field in the root package.json, which pins the
-# exact pnpm version — the same guarantee action-setup would have given us.
+# Actions are pinned to commit SHAs because the org requires it. The trailing
+# comment records the human-readable tag each SHA corresponds to; update both
+# together. pnpm/action-setup reads the `packageManager` field in the root
+# package.json, so the pnpm version is pinned there rather than duplicated here.
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - run: corepack enable
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24

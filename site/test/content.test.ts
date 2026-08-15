@@ -26,6 +26,13 @@ describe('content layer in fixture mode', () => {
     expect(await getLegalPage('nope')).toBeNull()
   })
 
+  it('flattens slug to a string, matching the live query projection', async () => {
+    // LEGAL_PAGE_QUERY projects `"slug": slug.current`, so the live shape is a
+    // plain string even though the fixture document stores `slug: {current}`.
+    const page = await getLegalPage('imprint')
+    expect(page?.slug).toBe('imprint')
+  })
+
   it('builds a Sanity CDN url from an image ref without network access', () => {
     const url = urlFor({
       _type: 'image',

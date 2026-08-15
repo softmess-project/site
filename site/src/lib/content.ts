@@ -20,14 +20,14 @@ export type LegalPage = NonNullable<LEGAL_PAGE_QUERY_RESULT>
 const USE_FIXTURES = process.env.SANITY_FIXTURES === '1'
 
 export const SITE_SETTINGS_QUERY = defineQuery(`
-  *[_id == "siteSettings"][0]{
+  *[_id == "siteSettings" && _type == "siteSettings"][0]{
     brand, tagline, email, instagram, instagramHandle, copyright,
     seo{title, description, ogImage}
   }
 `)
 
 export const HOME_PAGE_QUERY = defineQuery(`
-  *[_id == "homePage"][0]{
+  *[_id == "homePage" && _type == "homePage"][0]{
     heading, statement, body,
     charm{alt, asset},
     actions[]{_key, label, href}
@@ -66,7 +66,10 @@ export async function getLegalPage(slug: string): Promise<LegalPage | null> {
     const match = (legalPagesFixture as Array<{slug: {current: string}}>).find(
       (page) => page.slug.current === slug,
     )
-    return (match as unknown as LegalPage) ?? null
+    if (!match) return null
+    // LEGAL_PAGE_QUERY projects `"slug": slug.current`, flattening the document's
+    // `slug: {current}` object to a plain string — match that shape here too.
+    return {...match, slug: match.slug.current} as unknown as LegalPage
   }
   return ((await client.fetch(LEGAL_PAGE_QUERY, {slug})) as LegalPage) ?? null
 }

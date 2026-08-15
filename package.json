@@ -2,6 +2,7 @@
   "name": "softmess",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
     "dev": "concurrently -n studio,site -c magenta,blue \"pnpm --filter studio dev\" \"pnpm --filter site dev\"",
     "typegen": "pnpm --filter studio typegen",

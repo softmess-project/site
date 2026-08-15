@@ -1,6 +1,7 @@
 packages:
   - site
   - studio
+  - seed
 
 allowBuilds:
   esbuild: true

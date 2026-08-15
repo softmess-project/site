@@ -5,6 +5,12 @@
   "instagram": "https://www.instagram.com/softmess.project/",
   "instagramHandle": "@softmess.project",
   "copyright": "© 2026 softmess project",
+  "backLabel": "← back",
+  "instagramLabel": "instagram",
+  "notFound": {
+    "heading": "lost",
+    "body": "that page isn't here."
+  },
   "seo": {
     "title": "softmess project",
     "description": "handmade charms of paracord and resin clay, made once and probably never again."

@@ -115,6 +115,12 @@ export type SiteSettings = {
   instagram?: string;
   instagramHandle?: string;
   copyright?: string;
+  backLabel?: string;
+  instagramLabel?: string;
+  notFound?: {
+    heading?: string;
+    body?: string;
+  };
   seo?: {
     title?: string;
     description?: string;
@@ -245,7 +251,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
-// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    seo{title, description, ogImage}  }
+// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    seo{title, description, ogImage}  }
 export type SITE_SETTINGS_QUERY_RESULT = {
   brand: string | null;
   tagline: string | null;
@@ -253,6 +259,12 @@ export type SITE_SETTINGS_QUERY_RESULT = {
   instagram: string | null;
   instagramHandle: string | null;
   copyright: string | null;
+  backLabel: string | null;
+  instagramLabel: string | null;
+  notFound: {
+    heading: string | null;
+    body: string | null;
+  } | null;
   seo: {
     title: string | null;
     description: string | null;
@@ -316,13 +328,22 @@ export type LEGAL_PAGE_QUERY_RESULT = {
   slug: string | null;
 } | null;
 
+// Source: ../site/src/lib/content.ts
+// Variable: LEGAL_PAGE_NAV_QUERY
+// Query: *[_type == "legalPage" && defined(slug.current)] | order(title asc) {    title, "slug": slug.current  }
+export type LEGAL_PAGE_NAV_QUERY_RESULT = Array<{
+  title: string | null;
+  slug: string | null;
+}>;
+
 // Query TypeMap
 import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
-    '\n  *[_id == "siteSettings" && _type == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT;
+    '\n  *[_id == "siteSettings" && _type == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    backLabel, instagramLabel, notFound{heading, body},\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT;
     '\n  *[_id == "homePage" && _type == "homePage"][0]{\n    heading, statement, body,\n    charm{alt, asset},\n    actions[]{_key, label, href}\n  }\n': HOME_PAGE_QUERY_RESULT;
     '\n  *[_type == "legalPage" && defined(slug.current)].slug.current\n': LEGAL_PAGE_SLUGS_QUERY_RESULT;
     '\n  *[_type == "legalPage" && slug.current == $slug][0]{\n    title, kicker, body, "slug": slug.current\n  }\n': LEGAL_PAGE_QUERY_RESULT;
+    '\n  *[_type == "legalPage" && defined(slug.current)] | order(title asc) {\n    title, "slug": slug.current\n  }\n': LEGAL_PAGE_NAV_QUERY_RESULT;
   }
 }

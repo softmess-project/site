@@ -26,6 +26,28 @@ export const siteSettings = defineType({
     }),
     defineField({name: 'copyright', type: 'string'}),
     defineField({
+      name: 'backLabel',
+      type: 'string',
+      description: 'The link back to the home page, shown on legal pages and the 404 page',
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'instagramLabel',
+      type: 'string',
+      description: 'How Instagram is named in the footer navigation',
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'notFound',
+      title: 'Not found page',
+      type: 'object',
+      options: {collapsible: true, collapsed: true},
+      fields: [
+        defineField({name: 'heading', type: 'string', validation: (rule) => rule.required()}),
+        defineField({name: 'body', type: 'string', validation: (rule) => rule.required()}),
+      ],
+    }),
+    defineField({
       name: 'seo',
       type: 'object',
       options: {collapsible: true, collapsed: false},

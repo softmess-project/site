@@ -22,6 +22,7 @@ const USE_FIXTURES = process.env.SANITY_FIXTURES === '1'
 export const SITE_SETTINGS_QUERY = defineQuery(`
   *[_id == "siteSettings" && _type == "siteSettings"][0]{
     brand, tagline, email, instagram, instagramHandle, copyright,
+    backLabel, instagramLabel, notFound{heading, body},
     seo{title, description, ogImage}
   }
 `)
@@ -41,6 +42,12 @@ export const LEGAL_PAGE_SLUGS_QUERY = defineQuery(`
 export const LEGAL_PAGE_QUERY = defineQuery(`
   *[_type == "legalPage" && slug.current == $slug][0]{
     title, kicker, body, "slug": slug.current
+  }
+`)
+
+export const LEGAL_PAGE_NAV_QUERY = defineQuery(`
+  *[_type == "legalPage" && defined(slug.current)] | order(title asc) {
+    title, "slug": slug.current
   }
 `)
 
@@ -72,4 +79,13 @@ export async function getLegalPage(slug: string): Promise<LegalPage | null> {
     return {...match, slug: match.slug.current} as unknown as LegalPage
   }
   return ((await client.fetch(LEGAL_PAGE_QUERY, {slug})) as LegalPage) ?? null
+}
+
+export async function getLegalPageNav(): Promise<Array<{title: string; slug: string}>> {
+  if (USE_FIXTURES) {
+    return (legalPagesFixture as Array<{title: string; slug: {current: string}}>)
+      .map((page) => ({title: page.title, slug: page.slug.current}))
+      .sort((a, b) => a.title.localeCompare(b.title))
+  }
+  return (await client.fetch(LEGAL_PAGE_NAV_QUERY)) as Array<{title: string; slug: string}>
 }

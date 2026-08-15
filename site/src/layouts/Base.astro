@@ -7,6 +7,7 @@ import '@fontsource/outfit/700.css'
 import '../styles/theme.css'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
+import {getLegalPageNav} from '../lib/content'
 import type {SiteSettings} from '../lib/content'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 
 const {title, description, settings} = Astro.props
 const metaDescription = description ?? settings.seo?.description ?? ''
+const legalPages = await getLegalPageNav()
 ---
 
 <!doctype html>
@@ -47,6 +49,6 @@ const metaDescription = description ?? settings.seo?.description ?? ''
 
     <Header settings={settings} />
     <slot />
-    <Footer settings={settings} />
+    <Footer settings={settings} legalPages={legalPages} />
   </body>
 </html>

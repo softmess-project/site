@@ -108,3 +108,15 @@ describe('promises the site makes in its own privacy policy', () => {
     }
   })
 })
+
+describe('footer navigation', () => {
+  it('derives the footer legal nav from Sanity, not from hardcoded routes', () => {
+    const nav = [...doc('index.html').querySelectorAll('footer nav a')]
+    expect(nav.map((a) => a.getAttribute('href'))).toEqual([
+      '/imprint',
+      '/privacy',
+      'https://www.instagram.com/softmess.project/',
+    ])
+    expect(nav.map((a) => a.textContent?.trim())).toEqual(['imprint', 'privacy', 'instagram'])
+  })
+})

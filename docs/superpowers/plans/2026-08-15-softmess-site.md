@@ -13,7 +13,30 @@
 ## Global Constraints
 
 - **Node ≥ 22.12** (Astro 7 engine requirement). CI pins Node 24.
-- **pnpm 11** blocks postinstall scripts by default. `pnpm-workspace.yaml` must declare `onlyBuiltDependencies: [esbuild]`, or every install fails with "Run pnpm approve-builds".
+- **pnpm 11 blocks postinstall scripts by default.** `pnpm-workspace.yaml` needs BOTH an
+  `allowBuilds:` map and an `onlyBuiltDependencies:` list, covering `esbuild` and
+  `workerd`. Verified empirically on pnpm 11.9.0: `onlyBuiltDependencies` alone still
+  emits `ERR_PNPM_IGNORED_BUILDS` and leaves workerd's binary unbuilt, which breaks
+  `wrangler` in Task 8. The canonical form is below — treat it as fixed content, not a
+  suggestion, and do not "simplify" it by dropping either key.
+
+  ```yaml
+  packages:
+    - site
+    - studio
+
+  allowBuilds:
+    esbuild: true
+    workerd: true
+
+  onlyBuiltDependencies:
+    - esbuild
+    - workerd
+  ```
+- **`.gitignore` patterns must not be root-anchored.** The create-sanity bootstrap wrote
+  `/node_modules`, `/dist`, `/.sanity`, which stop matching once packages move into
+  `site/` and `studio/`. They are now `node_modules` (unanchored), `studio/dist`,
+  `studio/.sanity`. A leading slash here silently stages entire `node_modules` trees.
 - **Sanity CLI subcommand is `schemas` (plural)**: `sanity schemas extract`, not `sanity schema extract`.
 - **`@sanity/icons` must be imported from subpaths** — `import {CogIcon} from '@sanity/icons/Cog'`. Root named exports were removed in v5; they type-check clean and then fail at bundle time.
 - **Studio code style is set by the bootstrap's Prettier config** and is not negotiable: no semicolons, single quotes, no bracket spacing, `printWidth: 100`. Match it in every file under `studio/`.

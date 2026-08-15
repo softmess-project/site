@@ -1,9 +1,8 @@
-import imageUrlBuilder from '@sanity/image-url'
-import type {SanityImageSource} from '@sanity/image-url/lib/types/types'
+import {createImageUrlBuilder, type SanityImageSource} from '@sanity/image-url'
 
 // The builder only needs the project coordinates, not a live client, so this
 // works offline and in fixture mode.
-const builder = imageUrlBuilder({
+const builder = createImageUrlBuilder({
   projectId: process.env.SANITY_PROJECT_ID ?? '85i3osnk',
   dataset: process.env.SANITY_DATASET ?? 'production',
 })

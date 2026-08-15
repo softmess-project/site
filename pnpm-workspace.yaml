@@ -6,6 +6,9 @@ allowBuilds:
   esbuild: true
   workerd: true
 
+minimumReleaseAgeExclude:
+  - concurrently@10.0.5
+
 onlyBuiltDependencies:
   - esbuild
   - workerd

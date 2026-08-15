@@ -3,13 +3,18 @@ import {defineCliConfig} from 'sanity/cli'
 export default defineCliConfig({
   api: {
     projectId: '85i3osnk',
-    dataset: 'production'
+    dataset: 'production',
   },
   deployment: {
-    /**
-     * Enable auto-updates for studios.
-     * Learn more at https://www.sanity.io/docs/studio/latest-version-of-sanity#k47faf43faf56
-     */
-    autoUpdates: true,
+    // We self-host the Studio on Cloudflare and redeploy it from CI on every
+    // push. Auto-updates would swap that deterministic bundle for a runtime
+    // import map pointing at Sanity's CDN, gaining nothing.
+    autoUpdates: false,
+  },
+  typegen: {
+    enabled: true,
+    path: '../site/src/**/*.{ts,astro}',
+    schema: 'schema.json',
+    generates: '../site/src/sanity.types.ts',
   },
 })

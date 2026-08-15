@@ -1533,7 +1533,11 @@ describe('promises the site makes in its own privacy policy', () => {
     for (const page of PAGES) {
       const d = doc(page)
       const refs = [
-        ...[...d.querySelectorAll('link[href]')].map((n) => n.getAttribute('href')!),
+        // rel=canonical is an absolute self-reference, not a fetched
+        // subresource — it points at https://softmess.de by design.
+        ...[...d.querySelectorAll('link[href]:not([rel="canonical"])')].map(
+          (n) => n.getAttribute('href')!,
+        ),
         ...[...d.querySelectorAll('img[src], script[src]')].map(
           (n) => n.getAttribute('src')!,
         ),
@@ -1607,13 +1611,17 @@ packages:
   "private": true,
   "type": "module",
   "scripts": {
-    "seed": "node --experimental-strip-types --env-file=../.env --env-file=../.env.local seed.ts"
+    "seed": "node --env-file=../.env --env-file=../.env.local seed.ts"
   },
   "dependencies": {
     "@sanity/client": "^8.0.0"
   }
 }
 ```
+
+Node ≥ 22.18 strips TypeScript types natively, so `seed.ts` runs without a build step and
+without `--experimental-strip-types` (that flag is a no-op or an error on newer Node). If
+the run fails with a TypeScript syntax error, add `--experimental-strip-types` back.
 
 Then: `pnpm install`
 

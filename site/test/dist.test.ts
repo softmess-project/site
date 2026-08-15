@@ -3,7 +3,10 @@ import {join} from 'node:path'
 import {parseHTML} from 'linkedom'
 import {beforeAll, describe, expect, it} from 'vitest'
 
-const DIST = join(import.meta.dirname, '..', 'dist-fixtures')
+// Defaults to the fixture build for the offline/no-secrets path. CI re-runs
+// this same suite with DIST_DIR=dist against the real Sanity build before
+// deploying — that run is what catches unfilled placeholder content.
+const DIST = join(import.meta.dirname, '..', process.env.DIST_DIR ?? 'dist-fixtures')
 const PAGES = ['index.html', 'imprint/index.html', 'privacy/index.html', '404.html']
 
 function doc(page: string) {
@@ -12,7 +15,7 @@ function doc(page: string) {
 
 beforeAll(() => {
   if (!existsSync(join(DIST, 'index.html'))) {
-    throw new Error('Run `pnpm --filter site build:fixtures` before the dist tests')
+    throw new Error(`Run a build that outputs to ${DIST} before the dist tests`)
   }
 })
 

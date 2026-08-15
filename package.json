@@ -7,7 +7,7 @@
     "typegen": "pnpm --filter studio typegen",
     "build:site": "pnpm --filter site build",
     "build:studio": "pnpm --filter studio build",
-    "verify": "pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter site check && pnpm --filter site test"
+    "verify": "pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter site check && pnpm --filter site test"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

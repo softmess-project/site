@@ -1,0 +1,52 @@
+---
+import '@fontsource/bagel-fat-one/400.css'
+import '@fontsource/outfit/300.css'
+import '@fontsource/outfit/400.css'
+import '@fontsource/outfit/500.css'
+import '@fontsource/outfit/700.css'
+import '../styles/theme.css'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+import type {SiteSettings} from '../lib/content'
+
+interface Props {
+  title: string
+  description?: string
+  settings: SiteSettings
+}
+
+const {title, description, settings} = Astro.props
+const metaDescription = description ?? settings.seo?.description ?? ''
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {metaDescription && <meta name="description" content={metaDescription} />}
+    <meta property="og:title" content={title} />
+    {metaDescription && <meta property="og:description" content={metaDescription} />}
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
+  </head>
+  <body
+    class="relative flex min-h-dvh flex-col overflow-x-hidden bg-bg font-sans text-ink"
+  >
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute -top-[22vw] -right-[20vw] aspect-square w-[clamp(280px,62vw,520px)] rounded-full bg-sand-200 opacity-55"
+    >
+    </div>
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute -bottom-[26vw] -left-[22vw] aspect-square w-[clamp(260px,58vw,460px)] rounded-full bg-accent-200 opacity-45"
+    >
+    </div>
+
+    <Header settings={settings} />
+    <slot />
+    <Footer settings={settings} />
+  </body>
+</html>

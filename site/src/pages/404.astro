@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro'
+import {getSiteSettings} from '../lib/content'
+
+const settings = await getSiteSettings()
+---
+
+<Base title={`not found · ${settings.brand}`} settings={settings}>
+  <main class="relative flex-1 px-[clamp(24px,6vw,88px)] py-8">
+    <h1 class="mb-6 font-display text-[length:var(--text-page-title)] font-normal text-accent">
+      lost
+    </h1>
+    <p class="mb-8 text-[18px]">that page isn't here.</p>
+    <a
+      href="/"
+      class="inline-flex min-h-[48px] items-center gap-2 rounded-full border border-ink/18 px-[22px] text-[16px] text-ink no-underline hover:bg-ink/7"
+      >← back</a
+    >
+  </main>
+</Base>

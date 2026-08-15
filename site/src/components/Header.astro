@@ -1,0 +1,16 @@
+---
+import type {SiteSettings} from '../lib/content'
+interface Props {
+  settings: SiteSettings
+}
+const {settings} = Astro.props
+---
+
+<header class="relative flex items-center justify-between gap-4 px-[clamp(24px,6vw,88px)] py-6">
+  <a
+    href="/"
+    class="font-display text-[22px] tracking-[0.01em] text-accent no-underline"
+    >{settings.brand}</a
+  >
+  <span class="text-[13px] uppercase tracking-[0.14em] text-muted">{settings.tagline}</span>
+</header>

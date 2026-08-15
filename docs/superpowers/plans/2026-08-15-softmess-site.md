@@ -38,6 +38,15 @@
   `site/` and `studio/`. They are now `node_modules` (unanchored), `studio/dist`,
   `studio/.sanity`. A leading slash here silently stages entire `node_modules` trees.
 - **Sanity CLI subcommand is `schemas` (plural)**: `sanity schemas extract`, not `sanity schema extract`.
+- **TypeGen names query result types `<NAME>_QUERY_RESULT`, with an underscore** — not
+  `<NAME>_QUERYResult`. Verified against the generated file on `@sanity/codegen` 7.0.3.
+  Earlier drafts of this plan used the camel form and were wrong. Only
+  `site/src/lib/content.ts` imports these; everything downstream imports the
+  `SiteSettings` / `HomePage` / `LegalPage` aliases it re-exports.
+- **`site` must declare `vite` as a devDependency.** `astro.config.mjs` imports `loadEnv`
+  from `vite`, and pnpm's strict linking does not expose Astro's transitive copy to the
+  package. Without the explicit dependency, `astro check`, `astro build` and `astro dev`
+  all fail to resolve the import before doing any work.
 - **`@sanity/icons` must be imported from subpaths** — `import {CogIcon} from '@sanity/icons/Cog'`. Root named exports were removed in v5; they type-check clean and then fail at bundle time.
 - **Studio code style is set by the bootstrap's Prettier config** and is not negotiable: no semicolons, single quotes, no bracket spacing, `printWidth: 100`. Match it in every file under `studio/`.
 - **Secrets live only in `.env.local`** (gitignored). `.env` holds `SANITY_PROJECT_ID` / `SANITY_DATASET` and IS committed. The repo is public — never move a token into `.env`, a workflow file, or `wrangler.jsonc`.
@@ -832,12 +841,14 @@ Expected: FAIL — `Failed to resolve import "../src/lib/content"`.
 - [ ] **Step 7: Write `site/src/lib/image.ts`**
 
 ```ts
-import imageUrlBuilder from '@sanity/image-url'
-import type {SanityImageSource} from '@sanity/image-url/lib/types/types'
+// Both imports come from the package ROOT. `@sanity/image-url/lib/types/types`
+// is not in v2's exports map, and the default export is deprecated in favour
+// of the named `createImageUrlBuilder`.
+import {createImageUrlBuilder, type SanityImageSource} from '@sanity/image-url'
 
 // The builder only needs the project coordinates, not a live client, so this
 // works offline and in fixture mode.
-const builder = imageUrlBuilder({
+const builder = createImageUrlBuilder({
   projectId: process.env.SANITY_PROJECT_ID ?? '85i3osnk',
   dataset: process.env.SANITY_DATASET ?? 'production',
 })
@@ -2281,6 +2292,104 @@ git push
 ```
 
 ---
+
+## Task 11: Wire ESLint into the verify gate
+
+ESLint and `@sanity/eslint-config-studio` came with the `create-sanity` bootstrap, and
+`studio/eslint.config.mjs` exists — but no script anywhere invokes them, so the linter has
+never run. This task makes the installed config actually enforce something.
+
+Scope is the Studio only. The `site` package has no ESLint config and is not getting one —
+Astro's own tooling and `astro check` cover it, and adding a second linter is scope the
+spec did not ask for.
+
+**Files:**
+- Modify: `studio/package.json` (add `lint` script)
+- Modify: `package.json` (add `lint` to the `verify` chain)
+
+**Interfaces:**
+- Consumes: root `verify` script from Task 1
+- Produces: `pnpm --filter studio lint`; `pnpm verify` fails on a lint error
+
+- [ ] **Step 1: Find out whether the existing code even passes**
+
+Run: `pnpm --filter studio exec eslint .`
+Expected: unknown — this has never been run. Record the real output.
+
+If it reports errors in `studio/schemaTypes/`, `studio/structure.ts`, or the two config
+files, fix the code rather than loosening the config, unless the rule is plainly wrong for
+this project (for example a rule that fights the mandated Prettier style). Report any rule
+you disable and why.
+
+If it errors on `studio/dist/`, add an ignore for build output — that is a real gap in the
+bootstrap's config, not a code problem:
+
+```js
+import studio from '@sanity/eslint-config-studio'
+
+export default [...studio, {ignores: ['dist/', '.sanity/']}]
+```
+
+- [ ] **Step 2: Add the lint script**
+
+In `studio/package.json` `scripts`:
+
+```json
+"lint": "eslint ."
+```
+
+- [ ] **Step 3: Add lint to the verify chain**
+
+Root `package.json`, replacing the existing `verify`. Lint runs after typegen (so generated
+types exist) and before `astro check` (so the cheap check fails first):
+
+```json
+"verify": "pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter site check && pnpm --filter site test"
+```
+
+- [ ] **Step 4: Verify the gate actually gates**
+
+Run: `pnpm --filter studio lint`
+Expected: PASS, no output.
+
+Then prove it fails on a real error — introduce one temporarily, confirm a non-zero exit,
+and revert it:
+
+```bash
+echo "const unused = 1" >> studio/structure.ts
+pnpm --filter studio lint; echo "exit: $?"
+git checkout studio/structure.ts
+```
+
+Expected: non-zero exit with a reported error, then a clean tree. A lint step that cannot
+fail is not a gate.
+
+- [ ] **Step 5: Run the full gate**
+
+Run: `pnpm verify`
+Expected: PASS end to end.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add -A
+git commit -m "chore: wire eslint into the verify gate"
+```
+
+---
+
+## Follow-up work (not in this plan)
+
+**TypeScript 6.** The repo is on 5.9.3 because `create-sanity` wrote `^5.8` and the plan
+mirrored it into `site/package.json`. TypeScript 7.0.2 is current but **peer-blocked**:
+`@astrojs/check` declares `typescript: ^5.0.0 || ^6.0.0`, and `astro check` is part of the
+verify gate. **6.0.3 is reachable today** and is the version this project should be on.
+Deliberately deferred out of this plan — a compiler major belongs in its own change, where
+a failure is unambiguously the upgrade's fault, with `astro check`, `sanity schemas
+validate` and the full suite re-run behind it.
+
+**ESLint 10** is not reachable at all: `@sanity/eslint-config-studio` peers `eslint:
+^9.0.0`. Revisit when Sanity ships a v10-compatible config.
 
 ## Done criteria
 

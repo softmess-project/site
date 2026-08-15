@@ -7,16 +7,17 @@ interface Props {
 }
 const {charm} = Astro.props
 const WIDTH = 380
+const HEIGHT = Math.round(WIDTH * 1.25) // the mockup's 4:5 charm silhouette
 ---
 
 <figure class="relative m-0 justify-self-center">
   <div class="absolute inset-y-[-6%] inset-x-[-8%] rounded-full bg-surface opacity-70"></div>
   <img
-    src={urlFor(charm).width(WIDTH).format('webp').quality(80).url()}
-    srcset={srcSetFor(charm, WIDTH)}
+    src={urlFor(charm).width(WIDTH).height(HEIGHT).format('webp').quality(80).url()}
+    srcset={srcSetFor(charm, WIDTH, HEIGHT)}
     alt={charm.alt}
     width={WIDTH}
-    height={Math.round(WIDTH * 1.25)}
+    height={HEIGHT}
     loading="eager"
     decoding="async"
     class="charm-blob washed animate-drift relative w-[min(380px,74vw)] aspect-[4/5] object-cover shadow-charm"

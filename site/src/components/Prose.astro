@@ -1,0 +1,19 @@
+---
+import {PortableText} from 'astro-portabletext'
+import type {SomePortableTextComponents} from 'astro-portabletext/types'
+import Heading from './prose/Heading.astro'
+import Paragraph from './prose/Paragraph.astro'
+import Link from './prose/Link.astro'
+
+interface Props {
+  value: unknown
+}
+const {value} = Astro.props
+
+const components: SomePortableTextComponents = {
+  block: {h2: Heading, normal: Paragraph},
+  mark: {link: Link},
+}
+---
+
+<PortableText value={value as any} components={components} />

@@ -1729,6 +1729,10 @@ async function main() {
     instagram: 'https://www.instagram.com/softmess.project/',
     instagramHandle: '@softmess.project',
     copyright: '© 2026 softmess project',
+    // Added by Task 12 — these were hardcoded in the templates until then.
+    backLabel: '← back',
+    instagramLabel: 'instagram',
+    notFound: {heading: 'lost', body: "that page isn't here."},
     seo: {
       title: 'softmess project',
       description:
@@ -2079,6 +2083,11 @@ jobs:
       - run: pnpm build:site
         env:
           SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+      # The verify job runs the dist suite against fixtures, whose content is
+      # clean by construction — so its no-placeholder assertion says nothing
+      # about real Sanity content. Re-run the same suite against the real build
+      # before deploying. This is what actually blocks an unfilled imprint.
+      - run: DIST_DIR=dist pnpm --filter site exec vitest run test/dist.test.ts
       - run: pnpm --filter site exec wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -2377,6 +2386,122 @@ git commit -m "chore: wire eslint into the verify gate"
 ```
 
 ---
+
+## Task 12: Move every remaining string into Sanity
+
+An audit after Task 6 found copy still living in the source. The site's premise is that a
+non-developer owns all of it, so these are defects, not omissions.
+
+| File | Hardcoded today |
+| --- | --- |
+| `404.astro` | `lost`, `that page isn't here.`, `← back`, and the `not found ·` title prefix |
+| `[slug].astro` | `← back` |
+| `Footer.astro` | the labels `imprint` / `privacy` / `instagram`, **and** the `/imprint` `/privacy` hrefs |
+
+The footer is the substantive one. It hardcodes the routes as well as the labels, while
+those pages already exist as `legalPage` documents carrying a `title` and a `slug`. Adding a
+third legal page today silently would not appear in the footer. Deriving the nav from the
+documents fixes the copy and the structural bug together.
+
+**Files:**
+- Modify: `studio/schemaTypes/siteSettings.ts`, `site/src/lib/content.ts`,
+  `site/src/components/Footer.astro`, `site/src/pages/404.astro`,
+  `site/src/pages/[slug].astro`, `site/test/fixtures/siteSettings.json`,
+  `site/test/dist.test.ts`
+- Regenerate: `site/src/sanity.types.ts`
+
+**Interfaces:**
+- Produces: `getLegalPageNav(): Promise<Array<{title: string; slug: string}>>`
+- Extends `SiteSettings` with `backLabel`, `instagramLabel`, `notFound{heading, body}`
+
+- [ ] **Step 1: Extend the `siteSettings` schema**
+
+Add three fields, after `copyright` and before `seo`:
+
+```ts
+defineField({
+  name: 'backLabel',
+  type: 'string',
+  description: 'The link back to the home page, shown on legal pages and the 404 page',
+  validation: (rule) => rule.required(),
+}),
+defineField({
+  name: 'instagramLabel',
+  type: 'string',
+  description: 'How Instagram is named in the footer navigation',
+  validation: (rule) => rule.required(),
+}),
+defineField({
+  name: 'notFound',
+  title: 'Not found page',
+  type: 'object',
+  options: {collapsible: true, collapsed: true},
+  fields: [
+    defineField({name: 'heading', type: 'string', validation: (rule) => rule.required()}),
+    defineField({name: 'body', type: 'string', validation: (rule) => rule.required()}),
+  ],
+}),
+```
+
+- [ ] **Step 2: Extend the settings query and add a nav query**
+
+In `site/src/lib/content.ts`, add `backLabel, instagramLabel, notFound{heading, body}` to
+`SITE_SETTINGS_QUERY`'s projection, and add:
+
+```ts
+export const LEGAL_PAGE_NAV_QUERY = defineQuery(`
+  *[_type == "legalPage" && defined(slug.current)] | order(title asc) {
+    title, "slug": slug.current
+  }
+`)
+```
+
+with a `getLegalPageNav()` getter following the existing fixture-mode pattern. Ordering is
+alphabetical, which yields imprint before privacy as the mockup has it — deterministic
+without adding an ordering field the editor would have to maintain.
+
+- [ ] **Step 3: Derive the footer nav from the documents**
+
+`Footer.astro` takes a new `legalPages` prop and maps over it instead of hardcoding two
+anchors. `Base.astro` fetches it and passes it down. The Instagram anchor keeps its position
+after the legal links and uses `settings.instagramLabel`.
+
+- [ ] **Step 4: Use the new fields in the pages**
+
+`404.astro`: title becomes `` `${settings.notFound.heading} · ${settings.brand}` ``, the
+`<h1>` renders `settings.notFound.heading`, the paragraph `settings.notFound.body`, the link
+`settings.backLabel`. `[slug].astro`: the back link renders `settings.backLabel`.
+
+- [ ] **Step 5: Update fixtures and add a regression assertion**
+
+Add the three new fields to `site/test/fixtures/siteSettings.json` with the current
+hardcoded values, so the rendered output is unchanged. Then add to `dist.test.ts`:
+
+```ts
+it('derives the footer legal nav from Sanity, not from hardcoded routes', () => {
+  const nav = [...doc('index.html').querySelectorAll('footer nav a')]
+  expect(nav.map((a) => a.getAttribute('href'))).toEqual([
+    '/imprint',
+    '/privacy',
+    'https://www.instagram.com/softmess.project/',
+  ])
+  expect(nav.map((a) => a.textContent?.trim())).toEqual(['imprint', 'privacy', 'instagram'])
+})
+```
+
+- [ ] **Step 6: Prove no copy is left in the source**
+
+```bash
+grep -rnE ">[^<>{}]*[a-zA-Z]{3,}[^<>{}]*<" site/src/pages site/src/layouts site/src/components \
+  --include='*.astro' | grep -vE "prose/|<(slot|style|script)"
+```
+
+Expected: no matches outside `src/components/prose/` (whose elements wrap `<slot />` and
+contain no literal copy). Any hit is a string that still needs a Sanity field.
+
+- [ ] **Step 7: Verify and commit**
+
+`pnpm typegen`, then `pnpm verify` green, then commit.
 
 ## Follow-up work (not in this plan)
 

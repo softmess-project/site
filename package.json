@@ -6,6 +6,7 @@
     "dev": "concurrently -n studio,site -c magenta,blue \"pnpm --filter studio dev\" \"pnpm --filter site dev\"",
     "typegen": "pnpm --filter studio typegen",
     "build:site": "pnpm --filter site build",
+    "build:site:deploy": "pnpm build:site && DIST_DIR=dist pnpm --filter site exec vitest run test/dist.test.ts",
     "build:studio": "pnpm --filter studio build",
     "verify": "pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter site check && pnpm --filter site test"
   },

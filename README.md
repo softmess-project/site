@@ -1,9 +1,26 @@
-# Sanity Clean Content Studio
+# softmess.de
 
-Congratulations, you have now installed the Sanity Content Studio, an open-source real-time content editing environment connected to the Sanity backend.
+The [softmess project](https://softmess.de) site. Content lives in Sanity;
+the site is a static Astro build on Cloudflare Workers.
 
-Now you can do the following things:
+| | |
+| --- | --- |
+| Site | https://softmess.de |
+| Studio | https://studio.softmess.de |
+| Design | `docs/superpowers/specs/2026-08-15-softmess-site-design.md` |
 
-- [Read “getting started” in the docs](https://www.sanity.io/docs/introduction/getting-started?utm_source=readme)
-- [Join the Sanity community](https://www.sanity.io/community/join?utm_source=readme)
-- [Extend and build plugins](https://www.sanity.io/docs/content-studio/extending?utm_source=readme)
+## Develop
+
+    pnpm install
+    pnpm dev          # studio on :3333, site on :4321
+
+Secrets go in `.env.local` (gitignored); `.env` holds only the Sanity
+project id and dataset.
+
+## Verify
+
+    pnpm verify       # typegen drift, astro check, fixture build, tests
+
+## Deploy
+
+Pushing to `main` deploys both. Publishing in Sanity redeploys the site only.

@@ -1,2 +1,11 @@
+packages:
+  - site
+  - studio
+
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
+  workerd: true
+
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

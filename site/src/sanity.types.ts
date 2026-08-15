@@ -80,11 +80,9 @@ export type HomePage = {
     alt?: string;
     _type: "image";
   };
-  actions?: Array<
-    {
-      _key: string;
-    } & Action
-  >;
+  actions?: Array<{
+    _key: string;
+  } & Action>;
 };
 
 export type SanityImageCrop = {
@@ -225,23 +223,7 @@ export type Geopoint = {
   alt?: number;
 };
 
-export type AllSanitySchemaTypes =
-  | Action
-  | LegalPage
-  | Slug
-  | SanityImageAssetReference
-  | HomePage
-  | SanityImageCrop
-  | SanityImageHotspot
-  | SiteSettings
-  | SanityImagePaletteSwatch
-  | SanityImagePalette
-  | SanityImageDimensions
-  | SanityImageMetadata
-  | SanityFileAsset
-  | SanityAssetSourceData
-  | SanityImageAsset
-  | Geopoint;
+export type AllSanitySchemaTypes = Action | LegalPage | Slug | SanityImageAssetReference | HomePage | SanityImageCrop | SanityImageHotspot | SiteSettings | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageMetadata | SanityFileAsset | SanityAssetSourceData | SanityImageAsset | Geopoint;
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
@@ -316,13 +298,3 @@ export type LEGAL_PAGE_QUERY_RESULT = {
   slug: string | null;
 } | null;
 
-// Query TypeMap
-import "@sanity/client";
-declare module "@sanity/client" {
-  interface SanityQueries {
-    '\n  *[_id == "siteSettings" && _type == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT;
-    '\n  *[_id == "homePage" && _type == "homePage"][0]{\n    heading, statement, body,\n    charm{alt, asset},\n    actions[]{_key, label, href}\n  }\n': HOME_PAGE_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && defined(slug.current)].slug.current\n': LEGAL_PAGE_SLUGS_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && slug.current == $slug][0]{\n    title, kicker, body, "slug": slug.current\n  }\n': LEGAL_PAGE_QUERY_RESULT;
-  }
-}

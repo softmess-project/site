@@ -242,3 +242,131 @@ export type AllSanitySchemaTypes =
   | SanityAssetSourceData
   | SanityImageAsset
   | Geopoint;
+
+// Source: ../site/src/lib/content.ts
+// Variable: SITE_SETTINGS_QUERY
+// Query: *[_id == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    seo{title, description, ogImage}  }
+export type SITE_SETTINGS_QUERY_RESULT =
+  | {
+      brand: null;
+      tagline: null;
+      email: null;
+      instagram: null;
+      instagramHandle: null;
+      copyright: null;
+      seo: null;
+    }
+  | {
+      brand: string | null;
+      tagline: string | null;
+      email: string | null;
+      instagram: string | null;
+      instagramHandle: string | null;
+      copyright: string | null;
+      seo: {
+        title: string | null;
+        description: string | null;
+        ogImage: {
+          asset?: SanityImageAssetReference;
+          media?: unknown;
+          hotspot?: SanityImageHotspot;
+          crop?: SanityImageCrop;
+          _type: "image";
+        } | null;
+      } | null;
+    }
+  | null;
+
+// Source: ../site/src/lib/content.ts
+// Variable: HOME_PAGE_QUERY
+// Query: *[_id == "homePage"][0]{    heading, statement, body,    charm{alt, asset},    actions[]{_key, label, href}  }
+export type HOME_PAGE_QUERY_RESULT =
+  | {
+      heading: null;
+      statement: null;
+      body: null;
+      charm: null;
+      actions: null;
+    }
+  | {
+      heading: null;
+      statement: null;
+      body: Array<{
+        children?: Array<{
+          marks?: Array<string>;
+          text?: string;
+          _type: "span";
+          _key: string;
+        }>;
+        style?: "h2" | "normal";
+        listItem?: never;
+        markDefs?: Array<{
+          href?: string;
+          _type: "link";
+          _key: string;
+        }>;
+        level?: number;
+        _type: "block";
+        _key: string;
+      }> | null;
+      charm: null;
+      actions: null;
+    }
+  | {
+      heading: string | null;
+      statement: string | null;
+      body: Array<string> | null;
+      charm: {
+        alt: string | null;
+        asset: SanityImageAssetReference | null;
+      } | null;
+      actions: Array<{
+        _key: string;
+        label: string | null;
+        href: string | null;
+      }> | null;
+    }
+  | null;
+
+// Source: ../site/src/lib/content.ts
+// Variable: LEGAL_PAGE_SLUGS_QUERY
+// Query: *[_type == "legalPage" && defined(slug.current)].slug.current
+export type LEGAL_PAGE_SLUGS_QUERY_RESULT = Array<string | null>;
+
+// Source: ../site/src/lib/content.ts
+// Variable: LEGAL_PAGE_QUERY
+// Query: *[_type == "legalPage" && slug.current == $slug][0]{    title, kicker, body, "slug": slug.current  }
+export type LEGAL_PAGE_QUERY_RESULT = {
+  title: string | null;
+  kicker: string | null;
+  body: Array<{
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "h2" | "normal";
+    listItem?: never;
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  }> | null;
+  slug: string | null;
+} | null;
+
+// Query TypeMap
+import "@sanity/client";
+declare module "@sanity/client" {
+  interface SanityQueries {
+    '\n  *[_id == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT;
+    '\n  *[_id == "homePage"][0]{\n    heading, statement, body,\n    charm{alt, asset},\n    actions[]{_key, label, href}\n  }\n': HOME_PAGE_QUERY_RESULT;
+    '\n  *[_type == "legalPage" && defined(slug.current)].slug.current\n': LEGAL_PAGE_SLUGS_QUERY_RESULT;
+    '\n  *[_type == "legalPage" && slug.current == $slug][0]{\n    title, kicker, body, "slug": slug.current\n  }\n': LEGAL_PAGE_QUERY_RESULT;
+  }
+}

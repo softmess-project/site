@@ -1,0 +1,23 @@
+{
+  "heading": "softmess",
+  "statement": "follow the white rabbit.",
+  "body": [
+    "things I made because I wanted to see if I could — charms of paracord and resin clay, squeezed into shapes that refuse to sit still.",
+    "obviously handmade & made once probably. based in 353."
+  ],
+  "charm": {
+    "alt": "A handmade resin-clay charm on a paracord cord",
+    "asset": {
+      "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
+      "_type": "reference"
+    }
+  },
+  "actions": [
+    {
+      "_key": "instagram",
+      "label": "it all happens on instagram",
+      "href": "https://www.instagram.com/softmess.project/"
+    },
+    {"_key": "email", "label": "hi@softmess.de", "href": "mailto:hi@softmess.de"}
+  ]
+}

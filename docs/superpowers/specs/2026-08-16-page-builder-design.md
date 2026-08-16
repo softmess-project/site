@@ -1,7 +1,7 @@
 # Sanity page builder on Astro — design
 
 Date: 2026-08-16
-Status: approved pending spec review
+Status: approved
 
 Give the site's owner a page builder she can use without a developer — composing
 pages from blocks, reordering them, adding pages with their own slugs and
@@ -22,8 +22,12 @@ a Next.js replatform; §2 records why it is not being built.
   not be capable of looking broken.
 - **Establish whether she can actually do this**, early, on real content, before
   further work depends on the answer.
-- She can see unpublished drafts rendered in the real design, beside the form,
-  before publishing.
+- **The best editing experience Sanity offers on this stack**: Presentation mode,
+  fully featured — split view, click-to-edit overlays, document-location
+  resolution, iframe navigation that moves the form with it, and the drafts
+  perspective. The page-refresh flash is the *only* accepted compromise (§2);
+  everything else Presentation provides is in scope, and the reload itself should
+  be made as unobtrusive as the stack allows (§5).
 - Public traffic never invokes a Worker.
 - Visitors' browsers never connect to Sanity, apart from `cdn.sanity.io` for
   images.
@@ -34,8 +38,11 @@ a Next.js replatform; §2 records why it is not being built.
 
 - No replatform. See §2.
 - No **reload-free** preview. The preview iframe reloads on each change; only
-  removing that flash needed a React frontend, and it was weighed and declined
-  (§2). Live preview itself is a goal, above.
+  removing that flash needed a full React frontend, and it was weighed and
+  declined (§2). The click-to-edit overlay above does need a small React
+  island of its own in the preview build only (§4) — that renders the overlay,
+  not the page, and is a different, far cheaper thing than the reload-free
+  rewrite that was declined. Live preview itself is a goal, above.
 - No shop, cart, accounts, checkout, or analytics.
 - No localisation machinery. The site is German; there is no second language.
 - No product catalogue — only the decisions that keep it cheap to add (§3.4).
@@ -98,7 +105,7 @@ latter is not achievable and pretending otherwise sets up a false expectation.
 | Type | Change | Why |
 | --- | --- | --- |
 | `siteSettings` | singleton; gains `headerLinks[]`, `footerLinks[]`, field groups | Grows past a dozen fields; groups keep it navigable |
-| `homePage` | keeps its singleton id; fields replaced by `pageBuilder[]` | A singleton cannot be accidentally deleted — worth protecting for the one page that must exist |
+| `homePage` | keeps its singleton id; fields replaced by `pageBuilder[]`; **gains real delete protection** | The one page that must exist |
 | `page` | **new** — `title`, `slug`, `pageBuilder[]`, `seo` | Lets her add `/ueber-uns` without a developer |
 | `legalPage` | **deleted**, converted to `page` | See below |
 
@@ -110,6 +117,15 @@ appeared to buy was illusory — the imprint body was already freely editable.
 What protects the imprint is the placeholder test in §9, which is
 type-independent. The legal pages stay visibly grouped in the Studio through a
 structure filter (§5), not a separate type.
+
+**Singletons are currently deletable, despite prior claims otherwise.**
+`studio/sanity.config.ts` filters `templates`, which removes *creation* templates
+only. There is no `document.actions` override, so the owner can open Startseite →
+⋮ → Delete today. Deleting `homePage` or `siteSettings` makes every subsequent
+build crash on a null dereference — which, once publishing is automated, means
+every publish fails while the live site keeps serving old HTML. The fix is a
+`document.actions` filter removing `delete` and `duplicate` for singleton types,
+plus null guards that fail with a readable message rather than a TypeError.
 
 **Slugs must handle umlauts.** `slug` validates `^[a-z0-9-]+$`, and Sanity's
 default slugify does not transliterate — so `Über uns` becomes `über-uns` and
@@ -169,7 +185,9 @@ Three conventions, none optional:
 
 ## 4. Rendering
 
-Blocks become `.astro` components. No new framework, no client JavaScript.
+Blocks become `.astro` components. The public build adds no new framework and
+ships no client JavaScript; the preview build is the one exception, described
+below.
 
 ```
 site/src/
@@ -188,9 +206,20 @@ components port unchanged. `astro-portabletext` stays. Block props are typed off
 the generated query types, so schema drift is a type error rather than a blank
 section.
 
-Because the whole page renders server-side with no islands, the site continues to
-ship **no client-side JavaScript** — the original design's goal, which the Next
-plan would have retired, survives intact.
+`[slug].astro` keeps a single, unbranched `getStaticPaths` export across both
+build modes. Astro's server output silently skips `getStaticPaths` for
+non-prerendered routes rather than erroring on it, so the same file drives
+static generation on the public build and per-request rendering on the preview
+build.
+
+Because the static build renders server-side at build time with no islands, the
+public site continues to ship **no client-side JavaScript** — the original
+design's goal, which the Next plan would have retired, survives intact for the
+traffic that matters. The preview build is the exception: `@sanity/astro`'s
+visual-editing overlay renders as `client:only="react"` (§5), so the preview
+Worker alone pulls in `@astrojs/react`, `react`, and `react-dom` — a real
+island, but confined to the one deployment nobody but the owner and the
+developer ever load.
 
 ## 5. Studio
 
@@ -212,9 +241,10 @@ mechanism is unchanged.
 presentationTool({
   resolve,
   previewUrl: {
-    origin: 'https://preview.softmess.de',
+    initial: 'https://preview.softmess.de',
     previewMode: {enable: '/api/draft-mode/enable'},
   },
+  allowOrigins: ['https://preview.softmess.de'],
 })
 ```
 
@@ -222,21 +252,27 @@ presentationTool({
 → every page, labelled "Jede Seite", so editing the brand shows her what it
 affects.
 
-The iframe reloads on each change — Sanity's Astro integration triggers a
-`window.location.reload()` rather than a React re-render. That is the accepted
-trade from §2, and it should be written on the tin so nobody later mistakes it
-for a bug.
+The click-to-edit overlay is `@sanity/astro@3.5.0`'s `VisualEditing` component,
+imported from `@sanity/astro/visual-editing` and rendered `client:only="react"`
+— the one place this project's React island (§4) comes from. The iframe reloads
+on each change because that component's default `refresh` handler is literally
+`window.location.reload()` rather than a React re-render, confirmed from the
+package's source. That is the accepted trade from §2, and it should be written
+on the tin so nobody later mistakes it for a bug.
 
 ## 5.1 Studio ↔ preview origins
 
 Three prerequisites that are invisible until they fail:
 
 - `preview.softmess.de` and the Studio origin must be in the Sanity project's
-  **CORS allowlist**, or the overlays fail with a console error and no UI signal.
-- The Studio's `previewUrl.origin` and the preview Worker's own hostname must
+  **CORS allowlist** — a project-level setting, distinct from the
+  `presentationTool` config's own `allowOrigins` array above, though both need
+  the same preview origin — or the overlays fail with a console error and no UI
+  signal.
+- The Studio's `previewUrl.initial` and the preview Worker's own hostname must
   match exactly, including scheme.
-- Local development points `previewUrl.origin` at `http://localhost:4321`, so the
-  §6 session can run entirely on a laptop before the preview Worker exists.
+- Local development points `previewUrl.initial` at `http://localhost:4321`, so
+  the §6 session can run entirely on a laptop before the preview Worker exists.
 
 ## 6. The usability checkpoint
 
@@ -334,8 +370,15 @@ server-side, and impossible on the static build, which has no server.
 **Preview must not be publicly readable.** `preview.softmess.de` renders
 unpublished content; left open, it publishes every draft to anyone who guesses
 the hostname. Protection is the standard draft-mode handshake: an
-`/api/draft-mode/enable` route validates a shared secret from the Studio, sets a
-signed cookie, and redirects. Without the cookie the preview Worker serves
+`/api/draft-mode/enable` route calls `@sanity/preview-url-secret`'s
+`validatePreviewUrl(client, url)`, which validates a rotating
+`sanity.previewUrlSecret` document the Studio creates — not a hand-rolled
+shared secret, which would ship inside the public Studio bundle and defeat the
+point. On success it sets a signed cookie and redirects. That cookie must be
+`SameSite=None; Secure`: the preview renders inside a Studio iframe on a
+different origin, and a `Lax` cookie is silently dropped in that context, which
+would make the handshake appear to work while every later request quietly falls
+back to published content. Without the cookie the preview Worker serves
 **published** content only. Cloudflare Access (free for this seat count) is the
 belt-and-braces alternative if the handshake proves fiddly.
 

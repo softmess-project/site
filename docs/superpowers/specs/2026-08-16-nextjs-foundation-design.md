@@ -1,7 +1,20 @@
 # softmess.de on Next.js — foundation design
 
 Date: 2026-08-16
-Status: approved pending spec review
+Status: **superseded by `2026-08-16-page-builder-design.md`** — not implemented.
+
+Rejected after adversarial review established that the page builder is a Sanity
+Studio feature requiring no replatform, leaving reload-free preview as the sole
+justification — which the owner weighed and declined.
+
+Kept for its measurements (§2), which are stack-independent and were expensive to
+obtain, and for two errors worth not repeating. **§6 is wrong**: draft-mode
+cookies do not bypass Workers Cache, because cookies are not in the cache key and
+lookup precedes Worker execution — `Vary: Cookie` is required. **§3 is wrong**: a
+`[slug]` route without `generateStaticParams` renders dynamic and is never
+cached, so only `/` was ever cacheable. §5.1 also describes React's
+`useOptimistic`; Sanity's is a different, reducer-based hook from
+`next-sanity/hooks`.
 
 Replatform the site from Astro to Next.js on Cloudflare Workers, so that the
 site's owner composes and publishes pages herself, in German, with a preview that

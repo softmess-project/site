@@ -38,3 +38,8 @@ studio/schema.json
 
 # Wrangler
 .wrangler
+
+# Local-only Workers runtime vars (astro dev under the cloudflare adapter
+# reads these into the workerd sandbox; process.env from the host doesn't
+# reach it the way it does for the static build).
+.dev.vars

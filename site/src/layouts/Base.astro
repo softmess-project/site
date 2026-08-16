@@ -19,6 +19,10 @@ interface Props {
 const {title, description, settings} = Astro.props
 const metaDescription = description ?? settings.seo?.description ?? ''
 const legalPages = await getLegalPageNav(Astro.locals.sanity)
+
+const {VisualEditing} = import.meta.env.PREVIEW
+  ? await import('@sanity/astro/visual-editing')
+  : {VisualEditing: null}
 ---
 
 <!doctype html>
@@ -50,5 +54,6 @@ const legalPages = await getLegalPageNav(Astro.locals.sanity)
     <Header settings={settings} />
     <slot />
     <Footer settings={settings} legalPages={legalPages} />
+    {VisualEditing && <VisualEditing enabled={Astro.locals.draft} />}
   </body>
 </html>

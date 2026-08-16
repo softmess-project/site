@@ -2,9 +2,11 @@ import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
 import {presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
+import {deDELocale} from '@sanity/locale-de-de'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {resolve} from './presentation/resolve'
+import {SINGLETON_TYPES} from './lib/singletons'
 
 // Cloudflare Workers egress currently can't complete a TLS handshake to
 // Sanity's API, so the deployed preview Worker 500s. Defaulting to `pnpm dev`
@@ -31,11 +33,19 @@ export default defineConfig({
       },
     }),
     visionTool(),
+    deDELocale(),
   ],
 
   schema: {
     types: schemaTypes,
     templates: (templates) =>
-      templates.filter(({schemaType}) => !['siteSettings', 'homePage'].includes(schemaType)),
+      templates.filter(({schemaType}) => !SINGLETON_TYPES.includes(schemaType as never)),
+  },
+
+  document: {
+    actions: (previous, {schemaType}) =>
+      SINGLETON_TYPES.includes(schemaType as (typeof SINGLETON_TYPES)[number])
+        ? previous.filter(({action}) => action !== 'delete' && action !== 'duplicate')
+        : previous,
   },
 })

@@ -11,6 +11,8 @@
     "dev": "sanity dev",
     "lint": "eslint . --max-warnings 0",
     "start": "sanity start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "typegen": "sanity schemas extract --force && sanity typegen generate"
   },
   "keywords": [
@@ -18,6 +20,7 @@
   ],
   "dependencies": {
     "@sanity/icons": "^5.2.1",
+    "@sanity/locale-de-de": "^1.1.36",
     "@sanity/vision": "^6.9.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -30,6 +33,7 @@
     "eslint": "^9.39.5",
     "prettier": "^3.9.6",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.10",
     "wrangler": "^4.123.0"
   },
   "prettier": {

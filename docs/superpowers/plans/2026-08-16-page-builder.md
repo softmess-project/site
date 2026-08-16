@@ -68,6 +68,24 @@ git commit -m "docs: close spec review; name the Astro visual-editing stack"
 
 Stand up `preview.softmess.de` as a real SSR Worker before any schema work, so every later task can be verified against the real thing. At the end of this task the preview hostname serves the site exactly as production does — published content, no drafts, no overlay.
 
+> **Status: Steps 1–6 and 10 are done (commit `d6d1ebe`). Steps 7–9 are DEFERRED and still
+> outstanding.** The Cloudflare API token in `.env.local` carries Zone:Read but no Workers
+> permission — `/accounts/{id}/workers/scripts` returns error 10000 while `/zones` succeeds.
+> It is an account-owned token, so `/user/tokens/verify` returns "Invalid API Token" for it
+> regardless and is not a usable liveness check. **To unblock, add to that token in the
+> Cloudflare dashboard: Account → Workers Scripts → Edit; Account → Workers Routes → Edit;
+> Zone → Workers Routes → Edit on `softmess.de`.** Then run Steps 7–9 below as written.
+>
+> Two corrections were made to this task while implementing it, both verified against the
+> installed adapter: `@astrojs/cloudflare@14.2.1` emits `dist/server/entry.mjs` and
+> `dist/client/`, **not** `dist/_worker.js/index.js` and `dist/`. `site/wrangler.preview.jsonc`
+> as committed reflects the real layout; the Step 5 code block below does not. Trust the
+> committed file.
+>
+> Nothing else in this plan depends on the deploy: spec §5.1 supports pointing
+> `previewUrl.initial` at `http://localhost:4321`, so Tasks 2 and 3 — including the full
+> click-to-edit verification — run locally with no Worker.
+
 **Files:**
 - Modify: `site/astro.config.mjs`
 - Create: `site/wrangler.preview.jsonc`

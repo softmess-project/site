@@ -22,14 +22,20 @@ a Next.js replatform; §2 records why it is not being built.
   not be capable of looking broken.
 - **Establish whether she can actually do this**, early, on real content, before
   further work depends on the answer.
+- She can see unpublished drafts rendered in the real design, beside the form,
+  before publishing.
+- Public traffic never invokes a Worker.
+- Visitors' browsers never connect to Sanity, apart from `cdn.sanity.io` for
+  images.
 - The privacy policy must be true.
 - A product catalogue must later be additive, not a refactor.
 
 **Non-goals**
 
 - No replatform. See §2.
-- No reload-free preview. Preview reloads the page; this was weighed and
-  declined (§2).
+- No **reload-free** preview. The preview iframe reloads on each change; only
+  removing that flash needed a React frontend, and it was weighed and declined
+  (§2). Live preview itself is a goal, above.
 - No shop, cart, accounts, checkout, or analytics.
 - No localisation machinery. The site is German; there is no second language.
 - No product catalogue — only the decisions that keep it cheap to add (§3.4).
@@ -200,10 +206,37 @@ Inhalt
 `@sanity/locale-de-de` is added. `autoUpdates: false` stays. The TypeGen
 mechanism is unchanged.
 
-**The Presentation tool is deferred**, not adopted. Its value here is preview
-that reloads — which the Studio's existing preview affordances largely already
-give — and wiring it is only worthwhile if §6 shows she wants a live preview
-beside the form. Revisit after the session, with evidence.
+**The Presentation tool is adopted**, pointed at the preview deployment (§7.2):
+
+```ts
+presentationTool({
+  resolve,
+  previewUrl: {
+    origin: 'https://preview.softmess.de',
+    previewMode: {enable: '/api/draft-mode/enable'},
+  },
+})
+```
+
+`resolve.locations` maps `homePage` → `/`, `page` → `/{slug}`, and `siteSettings`
+→ every page, labelled "Jede Seite", so editing the brand shows her what it
+affects.
+
+The iframe reloads on each change — Sanity's Astro integration triggers a
+`window.location.reload()` rather than a React re-render. That is the accepted
+trade from §2, and it should be written on the tin so nobody later mistakes it
+for a bug.
+
+## 5.1 Studio ↔ preview origins
+
+Three prerequisites that are invisible until they fail:
+
+- `preview.softmess.de` and the Studio origin must be in the Sanity project's
+  **CORS allowlist**, or the overlays fail with a console error and no UI signal.
+- The Studio's `previewUrl.origin` and the preview Worker's own hostname must
+  match exactly, including scheme.
+- Local development points `previewUrl.origin` at `http://localhost:4321`, so the
+  §6 session can run entirely on a laptop before the preview Worker exists.
 
 ## 6. The usability checkpoint
 
@@ -249,32 +282,75 @@ Sanity today does nothing to the live site, and neither does pushing to `main`.
 Any claim that this project "replaces" a rebuild pipeline is false; it **builds
 the first one**.
 
-Two jobs are needed: `deploy-site` (`astro build` → `wrangler deploy`) and
-`deploy-studio` (`sanity build` → `wrangler deploy`), the latter excluded from
-content-publish triggers since the Studio bundle only changes with the schema.
+Three jobs are needed, all new: `deploy-site` (`astro build` → `wrangler
+deploy`), `deploy-preview` (`PREVIEW=1 astro build` → `wrangler deploy`), and
+`deploy-studio` (`sanity build` → `wrangler deploy`). Only `deploy-site` runs on
+a content publish; the other two change only when code or schema does.
 
-**How publishing reaches the live site** is deliberately deferred until after
-§6, because it is independent of whether the page builder works. Two options,
-to be decided then:
+### 7.1 Three Workers
 
-- **Static rebuild on publish.** Sanity webhook → `repository_dispatch` → build
-  → deploy. Roughly 40 s from Publish to live. Keeps the current architecture
-  entirely, including the property that the site is unaffected if Sanity is down.
-- **Astro SSR on Cloudflare + Workers Cache + purge on publish.** Near-instant.
-  Uses the §2 findings: `"cache": {"enabled": true}`, explicit
-  `Cache-Control: public, s-maxage=300` and `Cache-Tag: site` on every response,
-  purge on the publish webhook. Astro SSR is very unlikely to approach the 10 ms
-  free-plan CPU ceiling, since the 223 ms figure was React SSR under OpenNext.
-  Costs the "site survives a Sanity outage" property unless `stale-if-error` is
-  configured.
+```
+  softmess.de          static assets, Astro `output: 'static'`
+  www.softmess.de      → Worker NEVER invoked for public traffic
+                         free, unlimited, no CPU, no cache to purge or go stale
 
-If the second is chosen, three things from §2 apply and are easy to get wrong: a
-**short TTL** (five minutes, not a year) so every silent-staleness failure
-self-heals rather than persisting; **checking `purge()`'s return value**, which
-reports rate-limiting via `{success: false}` instead of throwing; and
-**normalising query strings out of the cache key**, since they are part of it by
-default and `?i=1..100000` would otherwise burn a large share of the monthly CPU
-allowance from a single client.
+  preview.softmess.de  Astro SSR on @astrojs/cloudflare
+                       → always renders, never cached, serves DRAFTS
+                       → used by one person; traffic is negligible
+
+  studio.softmess.de   Sanity Studio, static assets            ← unchanged
+```
+
+**The public site is static, and that is the strongest form of the goal.** HTML
+is served by Cloudflare's static-asset router, which does not invoke the Worker
+at all — strictly better than SSR-plus-cache, which only gets the Worker *mostly*
+out of the way and adds a purge webhook, a TTL, a cache key and several silent
+failure modes to get there. It also keeps the property the original design chose
+deliberately: **if Sanity is down, the public site is unaffected.** Only
+publishing and preview stop working.
+
+The cost is latency between Publish and live: a rebuild, roughly 40 s. Because
+she will already have seen the exact result in preview before pressing Publish,
+that delay is on a change she has *finished* reviewing, not one she is iterating
+on. That is what makes it acceptable, and it is why preview earns its Worker.
+
+### 7.2 The preview Worker
+
+One Astro project, two build modes, selected by an environment variable rather
+than a second config file:
+
+```js
+// astro.config.mjs
+const preview = process.env.PREVIEW === '1'
+export default defineConfig({
+  output: preview ? 'server' : 'static',
+  adapter: preview ? cloudflare() : undefined,
+})
+```
+
+Preview reads drafts, so it holds a Sanity token — safe because it is
+server-side, and impossible on the static build, which has no server.
+
+**Preview must not be publicly readable.** `preview.softmess.de` renders
+unpublished content; left open, it publishes every draft to anyone who guesses
+the hostname. Protection is the standard draft-mode handshake: an
+`/api/draft-mode/enable` route validates a shared secret from the Studio, sets a
+signed cookie, and redirects. Without the cookie the preview Worker serves
+**published** content only. Cloudflare Access (free for this seat count) is the
+belt-and-braces alternative if the handshake proves fiddly.
+
+Because preview lives on its own hostname and is never cached, none of the
+Workers Cache complications from §2 apply: no cache key, no `Vary: Cookie`, no
+purge, no TTL. Separating by hostname rather than by cache variant is what makes
+this simple, and it is the reason this shape is preferable to the one the Next
+spec described.
+
+### 7.3 Publishing
+
+Sanity webhook → GitHub `repository_dispatch` → build → `wrangler deploy` of the
+static site only. Filtered to the content types that affect the public site, on
+published documents only. The Studio and preview Workers are **not** redeployed
+by a content publish — neither changes when content does.
 
 ## 8. German copy, slugs, and the privacy fix
 
@@ -294,6 +370,16 @@ JavaScript, `cdn.sanity.io` remains the **only** third-party origin, and no
 visitor's browser opens a connection to Sanity's API. The Next design would have
 added a persistent SSE connection to `api.sanity.io` from every visitor, which
 would have required disclosing a second processor and adding public CORS origins.
+
+The visual-editing overlay script loads **only on the preview deployment**, never
+on the static public build, so it changes nothing about what a visitor's browser
+does and nothing about what the policy must disclose.
+
+**Removing `cdn.sanity.io` too** — proxying images through our own origin so
+Sanity never sees a visitor IP — would make the policy's original claim literally
+true. It is not in this project. On a static build it means fetching and
+fingerprinting images at build time, which is tractable, and it is the natural
+follow-up once the page builder is in her hands. Recorded as a want, not a plan.
 
 ### 8.1 Migration script
 
@@ -323,9 +409,20 @@ with `SANITY_FIXTURES=1` and asserting over the HTML with `linkedom`.
 | Umlaut slugs transliterate correctly | **new** |
 | No `[`-bracketed placeholder survives into any built page | unchanged |
 | No subresource from any origin but self or `cdn.sanity.io` | unchanged |
-| No `<script>` tag is emitted | **unchanged — still passes** |
+| No `<script>` tag is emitted **by the static build** | **unchanged — still passes** |
+| Preview without the draft cookie serves published content, not drafts | **new**, `verify:live` |
+| Preview hostname is absent from every static build artifact | **new** |
 
 Fixtures gain a page-builder document per block type.
+
+The `<script>` assertion now needs a scope: it holds for the **static public
+build** and must not be run against the preview build, which legitimately loads
+the visual-editing overlay. Scoping it to `dist/` rather than to the project is
+what keeps it honest instead of quietly weakened.
+
+The draft-leak test is the one worth having here — it is this design's
+equivalent of the stale-cache trap, in that it fails silently and in the
+direction of exposing unpublished content.
 
 ## 10. Open items
 
@@ -337,10 +434,17 @@ Fixtures gain a page-builder document per block type.
    Auftragsverarbeitungsvertrag on file is the wrong half of the fix.
    **Owner action.**
 3. **German copy.** Every string needs a German original. **Owner action.**
-4. **Publishing mechanism** — decided after §6 (see §7).
-5. **Presentation tool** — decided after §6 (see §5).
-6. **Sanity document-history retention** on the current plan, since it is the
+4. **Sanity document-history retention** on the current plan, since it is the
    owner's only undo.
+5. **`preview.softmess.de` DNS and CORS.** The hostname needs a Worker custom
+   domain, and both it and the Studio origin need adding to the Sanity project's
+   CORS allowlist. Neither is currently configured.
+6. **Preview access control.** Confirm the draft-mode handshake actually gates
+   drafts before the hostname is public — this is the one failure in the design
+   that leaks content rather than merely breaking.
+7. **Astro SSR cold-start on Workers.** Unmeasured. The account is on Workers
+   Paid (§2), so the 10 ms free-plan cap does not apply and this is a latency
+   question for one user, not a cost or correctness one.
 
 ## 11. Decision log
 
@@ -355,6 +459,8 @@ Fixtures gain a page-builder document per block type.
 | Five blocks | A larger starter set | Sanity's documented failure mode is too many block types |
 | `/produkte/<slug>` reserved now | Decide when products arrive | Retrofitting a URL namespace is a breaking change |
 | Rewrite the privacy copy | Proxy images through our origin | Sanity is the processor either way |
-| Publishing mechanism deferred | Decide it now | Independent of §6's outcome, and §6 may change what is worth building |
-| Presentation tool deferred | Adopt it with the page builder | Its value is preview ergonomics — the thing §6 exists to measure |
+| Static public build | Astro SSR + Workers Cache + purge | Static assets never invoke the Worker at all, where SSR+cache only mostly avoids it — and it avoids a purge webhook, a TTL, a cache key and several silent staleness modes. Also keeps "the site survives a Sanity outage" |
+| Rebuild on publish, ~40 s | Instant publish via cache purge | She has already reviewed the change in preview before pressing Publish, so the delay lands on finished work rather than on iteration |
+| Preview on its own hostname | Preview via draft cookie on the production Worker | A separate origin sidesteps the cache key entirely — no `Vary: Cookie`, no cookie-vs-cache-lookup bug, which is exactly what broke the Next design |
+| Presentation tool adopted | Studio's built-in preview only | Once a preview deployment exists, Presentation is the thing that makes it usable beside the form |
 | Zero client-side JavaScript retained | Retire the goal, as the Next plan did | Not replatforming means never paying that price |

@@ -2303,6 +2303,26 @@ Create `site/public/_redirects` — Cloudflare Workers static assets read it fro
 /privacy /datenschutz 301
 ```
 
+**Observed on the live deploy, and to be settled here:** `https://softmess.de/imprint` currently
+307-redirects to `/imprint/`, because Cloudflare's asset router appends a trailing slash — while
+`astro.config.mjs` sets `trailingSlash: 'never'` and the page's own canonical tag emits
+`https://softmess.de/imprint` with no slash. The served URL and the declared canonical disagree.
+Decide one convention and make all three agree (Astro config, canonical tag, and what the asset
+router actually serves), then assert it in the dist tests so it cannot drift back. Getting this
+wrong splits every page across two URLs for search engines.
+
+- [ ] **Step 4b: Restore the imprint's launch guard**
+
+The address placeholders in the imprint are now the literal string `TBD` (e.g. "Softmess Project
+(TBD)", "TBD, § 18 (2) MStV"), not `[street and number]`. `site/test/dist.test.ts` only matches
+`\[[a-z][^\]]{2,}\]`, so **the guard that was designed to fail the build until a §5 DDG-compliant
+address exists no longer fires**. The legal gap is unchanged; only its visibility was lost.
+
+Broaden the placeholder assertion to catch the unfilled-content class generally — at minimum a
+standalone `TBD` and `TODO`, case-insensitive, as whole words, alongside the existing bracket rule.
+Add a test that fails today against the current imprint content, so the guard is demonstrably live
+rather than merely present. This is the one test in the suite whose job is to block launch.
+
 - [ ] **Step 5: Dry-run the migration**
 
 Run: `pnpm --filter seed migrate`

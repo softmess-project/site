@@ -21,6 +21,122 @@ export type Action = {
   href?: string;
 };
 
+export type Cta = {
+  _type: "cta";
+  heading?: string;
+  body?: string;
+  actions?: Array<
+    {
+      _key: string;
+    } & Action
+  >;
+  background?: "normal" | "akzent";
+};
+
+export type SanityImageAssetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+};
+
+export type Gallery = {
+  _type: "gallery";
+  images?: Array<{
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    alt?: string;
+    _type: "image";
+    _key: string;
+  }>;
+  columns?: "2" | "3";
+};
+
+export type ImageText = {
+  _type: "imageText";
+  image?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    alt?: string;
+    _type: "image";
+  };
+  heading?: string;
+  body?: string;
+  actions?: Array<
+    {
+      _key: string;
+    } & Action
+  >;
+  imagePosition?: "links" | "rechts";
+  background?: "normal" | "sand" | "akzent";
+};
+
+export type RichText = {
+  _type: "richText";
+  content?: Array<{
+    children?: Array<{
+      marks?: Array<string>;
+      text?: string;
+      _type: "span";
+      _key: string;
+    }>;
+    style?: "normal" | "h2";
+    listItem?: "bullet";
+    markDefs?: Array<{
+      href?: string;
+      _type: "link";
+      _key: string;
+    }>;
+    level?: number;
+    _type: "block";
+    _key: string;
+  }>;
+  width?: "schmal" | "breit";
+};
+
+export type Hero = {
+  _type: "hero";
+  heading?: string;
+  statement?: string;
+  body?: Array<string>;
+  image?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    alt?: string;
+    _type: "image";
+  };
+  imagePosition?: "links" | "rechts";
+  actions?: Array<
+    {
+      _key: string;
+    } & Action
+  >;
+};
+
+export type PageBuilder = Array<
+  | ({
+      _key: string;
+    } & Hero)
+  | ({
+      _key: string;
+    } & RichText)
+  | ({
+      _key: string;
+    } & ImageText)
+  | ({
+      _key: string;
+    } & Gallery)
+  | ({
+      _key: string;
+    } & Cta)
+>;
+
 export type LegalPage = {
   _id: string;
   _type: "legalPage";
@@ -56,11 +172,19 @@ export type Slug = {
   source?: string;
 };
 
-export type SanityImageAssetReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+export type Page = {
+  _id: string;
+  _type: "page";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  title?: string;
+  slug?: Slug;
+  pageBuilder?: PageBuilder;
+  seo?: {
+    title?: string;
+    description?: string;
+  };
 };
 
 export type HomePage = {
@@ -69,22 +193,7 @@ export type HomePage = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
-  heading?: string;
-  statement?: string;
-  body?: Array<string>;
-  charm?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    alt?: string;
-    _type: "image";
-  };
-  actions?: Array<
-    {
-      _key: string;
-    } & Action
-  >;
+  pageBuilder?: PageBuilder;
 };
 
 export type SanityImageCrop = {
@@ -233,9 +342,16 @@ export type Geopoint = {
 
 export type AllSanitySchemaTypes =
   | Action
+  | Cta
+  | SanityImageAssetReference
+  | Gallery
+  | ImageText
+  | RichText
+  | Hero
+  | PageBuilder
   | LegalPage
   | Slug
-  | SanityImageAssetReference
+  | Page
   | HomePage
   | SanityImageCrop
   | SanityImageHotspot
@@ -282,18 +398,11 @@ export type SITE_SETTINGS_QUERY_RESULT = {
 // Variable: HOME_PAGE_QUERY
 // Query: *[_id == "homePage" && _type == "homePage"][0]{    heading, statement, body,    charm{alt, asset},    actions[]{_key, label, href}  }
 export type HOME_PAGE_QUERY_RESULT = {
-  heading: string | null;
-  statement: string | null;
-  body: Array<string> | null;
-  charm: {
-    alt: string | null;
-    asset: SanityImageAssetReference | null;
-  } | null;
-  actions: Array<{
-    _key: string;
-    label: string | null;
-    href: string | null;
-  }> | null;
+  heading: null;
+  statement: null;
+  body: null;
+  charm: null;
+  actions: null;
 } | null;
 
 // Source: ../site/src/lib/content.ts

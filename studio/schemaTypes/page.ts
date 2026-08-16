@@ -76,9 +76,12 @@ export const page = defineType({
       const id = doc._id.replace(/^drafts\./, '')
       const linked = await context.getClient({apiVersion: '2026-08-15'}).fetch<boolean>(
         // navLink stores its reference under `page`, so the refs live at
-        // headerLinks[].page._ref — not at headerLinks[]._ref.
-        `count(*[_id == "siteSettings"][0].headerLinks[page._ref == $id]) +
-         count(*[_id == "siteSettings"][0].footerLinks[page._ref == $id]) > 0`,
+        // headerLinks[].page._ref — not at headerLinks[]._ref. coalesce(...,
+        // 0) matters: count() of an unset array is null, and null + n is
+        // null, so without it a document missing either array always read
+        // as "linked from nowhere".
+        `coalesce(count(*[_id == "siteSettings"][0].headerLinks[page._ref == $id]), 0) +
+         coalesce(count(*[_id == "siteSettings"][0].footerLinks[page._ref == $id]), 0) > 0`,
         {id},
       )
       return linked

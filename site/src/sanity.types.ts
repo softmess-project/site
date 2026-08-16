@@ -137,6 +137,19 @@ export type PageBuilder = Array<
     } & Cta)
 >;
 
+export type PageReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "page";
+};
+
+export type NavLink = {
+  _type: "navLink";
+  label?: string;
+  page?: PageReference;
+};
+
 export type LegalPage = {
   _id: string;
   _type: "legalPage";
@@ -226,6 +239,16 @@ export type SiteSettings = {
   copyright?: string;
   backLabel?: string;
   instagramLabel?: string;
+  headerLinks?: Array<
+    {
+      _key: string;
+    } & NavLink
+  >;
+  footerLinks?: Array<
+    {
+      _key: string;
+    } & NavLink
+  >;
   notFound?: {
     heading?: string;
     body?: string;
@@ -349,6 +372,8 @@ export type AllSanitySchemaTypes =
   | RichText
   | Hero
   | PageBuilder
+  | PageReference
+  | NavLink
   | LegalPage
   | Slug
   | Page

@@ -6,6 +6,7 @@ import {imageText} from './blocks/imageText'
 import {richText} from './blocks/richText'
 import {homePage} from './homePage'
 import {legalPage} from './legalPage'
+import {navLink} from './navLink'
 import {page} from './page'
 import {pageBuilder} from './pageBuilder'
 import {siteSettings} from './siteSettings'
@@ -15,6 +16,7 @@ export const schemaTypes = [
   homePage,
   page,
   legalPage,
+  navLink,
   pageBuilder,
   hero,
   richText,

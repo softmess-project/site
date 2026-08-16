@@ -70,4 +70,19 @@ export const page = defineType({
       subtitle: subtitle ? `/${subtitle}` : 'Keine Adresse',
     }),
   },
+  validation: (rule) =>
+    rule.custom(async (doc, context) => {
+      if (!doc?._id) return true
+      const id = doc._id.replace(/^drafts\./, '')
+      const linked = await context.getClient({apiVersion: '2026-08-15'}).fetch<boolean>(
+        // navLink stores its reference under `page`, so the refs live at
+        // headerLinks[].page._ref — not at headerLinks[]._ref.
+        `count(*[_id == "siteSettings"][0].headerLinks[page._ref == $id]) +
+         count(*[_id == "siteSettings"][0].footerLinks[page._ref == $id]) > 0`,
+        {id},
+      )
+      return linked
+        ? true
+        : 'Diese Seite ist über die Adresse erreichbar, aber von nirgendwo verlinkt. Unter Website-Einstellungen → Navigation kann sie verlinkt werden.'
+    }).warning(),
 })

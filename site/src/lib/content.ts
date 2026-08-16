@@ -1,5 +1,5 @@
 import {defineQuery} from 'groq'
-import {client} from './sanity'
+import type {SanityClient} from '@sanity/client/stega'
 import type {
   HOME_PAGE_QUERY_RESULT,
   LEGAL_PAGE_QUERY_RESULT,
@@ -51,24 +51,27 @@ export const LEGAL_PAGE_NAV_QUERY = defineQuery(`
   }
 `)
 
-export async function getSiteSettings(): Promise<SiteSettings> {
+export async function getSiteSettings(client: SanityClient): Promise<SiteSettings> {
   if (USE_FIXTURES) return siteSettingsFixture as unknown as SiteSettings
   return (await client.fetch(SITE_SETTINGS_QUERY)) as SiteSettings
 }
 
-export async function getHomePage(): Promise<HomePage> {
+export async function getHomePage(client: SanityClient): Promise<HomePage> {
   if (USE_FIXTURES) return homePageFixture as unknown as HomePage
   return (await client.fetch(HOME_PAGE_QUERY)) as HomePage
 }
 
-export async function getLegalPageSlugs(): Promise<string[]> {
+export async function getLegalPageSlugs(client: SanityClient): Promise<string[]> {
   if (USE_FIXTURES) {
     return (legalPagesFixture as Array<{slug: {current: string}}>).map((p) => p.slug.current)
   }
   return (await client.fetch(LEGAL_PAGE_SLUGS_QUERY)) as string[]
 }
 
-export async function getLegalPage(slug: string): Promise<LegalPage | null> {
+export async function getLegalPage(
+  client: SanityClient,
+  slug: string,
+): Promise<LegalPage | null> {
   if (USE_FIXTURES) {
     const match = (legalPagesFixture as Array<{slug: {current: string}}>).find(
       (page) => page.slug.current === slug,
@@ -81,7 +84,9 @@ export async function getLegalPage(slug: string): Promise<LegalPage | null> {
   return ((await client.fetch(LEGAL_PAGE_QUERY, {slug})) as LegalPage) ?? null
 }
 
-export async function getLegalPageNav(): Promise<Array<{title: string; slug: string}>> {
+export async function getLegalPageNav(
+  client: SanityClient,
+): Promise<Array<{title: string; slug: string}>> {
   if (USE_FIXTURES) {
     return (legalPagesFixture as Array<{title: string; slug: {current: string}}>)
       .map((page) => ({title: page.title, slug: page.slug.current}))

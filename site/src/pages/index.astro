@@ -3,7 +3,10 @@ import Base from '../layouts/Base.astro'
 import CharmImage from '../components/CharmImage.astro'
 import {getHomePage, getSiteSettings} from '../lib/content'
 
-const [settings, home] = await Promise.all([getSiteSettings(), getHomePage()])
+const [settings, home] = await Promise.all([
+  getSiteSettings(Astro.locals.sanity),
+  getHomePage(Astro.locals.sanity),
+])
 const title = settings.seo?.title ?? `${settings.brand} ${settings.tagline ?? ''}`.trim()
 
 const primary =

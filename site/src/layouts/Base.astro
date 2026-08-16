@@ -18,7 +18,7 @@ interface Props {
 
 const {title, description, settings} = Astro.props
 const metaDescription = description ?? settings.seo?.description ?? ''
-const legalPages = await getLegalPageNav()
+const legalPages = await getLegalPageNav(Astro.locals.sanity)
 ---
 
 <!doctype html>

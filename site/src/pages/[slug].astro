@@ -2,14 +2,20 @@
 import Base from '../layouts/Base.astro'
 import Prose from '../components/Prose.astro'
 import {getLegalPage, getLegalPageSlugs, getSiteSettings} from '../lib/content'
+import {publishedClient} from '../lib/sanity'
 
 export async function getStaticPaths() {
-  const slugs = await getLegalPageSlugs()
+  // No request context (and so no Astro.locals) exists here — the set of
+  // routes to prerender is a property of published content regardless.
+  const slugs = await getLegalPageSlugs(publishedClient)
   return slugs.map((slug) => ({params: {slug}}))
 }
 
 const {slug} = Astro.params
-const [settings, page] = await Promise.all([getSiteSettings(), getLegalPage(slug!)])
+const [settings, page] = await Promise.all([
+  getSiteSettings(Astro.locals.sanity),
+  getLegalPage(Astro.locals.sanity, slug!),
+])
 
 if (!page) {
   throw new Error(`No legalPage found for slug "${slug}"`)

@@ -597,15 +597,3 @@ export type NAV_QUERY_RESULT =
       }> | null
     }
   | null
-
-// Query TypeMap
-import '@sanity/client'
-declare module '@sanity/client' {
-  interface SanityQueries {
-    '\n  *[_id == "siteSettings" && _type == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    backLabel, instagramLabel, notFound{heading, body},\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT
-    '\n  *[_id == "homePage" && _type == "homePage"][0]{\n  pageBuilder[]{\n    _key, _type,\n    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},\n    _type == "richText" => {content, width},\n    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},\n    _type == "gallery" => {images[]{_key, alt, asset}, columns},\n    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}\n  }\n}\n': HOME_PAGE_QUERY_RESULT
-    '\n  *[_type == "page" && defined(slug.current)].slug.current\n': PAGE_SLUGS_QUERY_RESULT
-    '\n  *[_type == "page" && slug.current == $slug][0]{\n    title, "slug": slug.current, seo{title, description},\n    \n  pageBuilder[]{\n    _key, _type,\n    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},\n    _type == "richText" => {content, width},\n    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},\n    _type == "gallery" => {images[]{_key, alt, asset}, columns},\n    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}\n  }\n\n  }\n': PAGE_QUERY_RESULT
-    '\n  *[_id == "siteSettings"][0]{\n    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},\n    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}\n  }\n': NAV_QUERY_RESULT
-  }
-}

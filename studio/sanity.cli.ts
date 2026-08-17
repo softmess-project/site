@@ -20,6 +20,14 @@ export default defineCliConfig({
   typegen: {
     formatGeneratedCode: true,
     enabled: true,
+    // The dev server's typegen watcher and `sanity typegen generate` disagreed:
+    // only the latter emitted the "Query TypeMap" module augmentation, so with
+    // `pnpm dev` running the watcher kept reverting the committed file and
+    // `pnpm verify`'s generated-types check failed at random. content.ts casts
+    // every client.fetch() against the exported *_QUERY_RESULT types and never
+    // relies on that augmentation, so switching it off costs no type safety and
+    // makes both writers produce the same file.
+    overloadClientMethods: false,
     path: '../site/src/**/*.{ts,astro}',
     schema: 'schema.json',
     generates: '../site/src/sanity.types.ts',

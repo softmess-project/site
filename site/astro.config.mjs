@@ -29,16 +29,15 @@ export default defineConfig({
     // Inlined at build time so `if (import.meta.env.PREVIEW)` branches are
     // eliminated entirely from the static bundle, imports included.
     define: {'import.meta.env.PREVIEW': JSON.stringify(preview)},
-    // Pre-bundle the visual-editing island's chain: react/compiler-runtime is
-    // CommonJS, and served raw it has no named export `c` to import.
+    // @sanity/visual-editing is React-Compiler output, so it imports {c} from
+    // react-compiler-runtime — a CommonJS package with no named exports until
+    // Vite pre-bundles it. Without this the overlay island fails to hydrate.
+    // Pre-bundle the whole package, not its deps one at a time: pnpm symlinks it
+    // outside site/, so Vite serves it raw and each CommonJS dep in its chain
+    // (react-compiler-runtime, react-is, …) reaches the browser without named
+    // exports. Nested syntax because it is not a direct dependency of site/.
     optimizeDeps: preview
-      ? {
-          include: [
-            'react/compiler-runtime',
-            '@sanity/visual-editing',
-            '@sanity/visual-editing/react',
-          ],
-        }
+      ? {include: ['@sanity/astro > @sanity/visual-editing/react']}
       : undefined,
   },
 })

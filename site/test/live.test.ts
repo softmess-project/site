@@ -16,6 +16,13 @@ const PREVIEW_URL = (process.env.PREVIEW_URL ?? 'https://preview.softmess.de').r
 // reach it, or against a `wrangler dev` origin.
 const SITE_URL = process.env.SITE_URL?.replace(/\/$/, '')
 
+// Whether the deployed build was made with PROXY_IMAGES=1, exactly as
+// dist.test.ts gates the same pair of shapes. Production ships the flag off
+// until the zone's outbound TLS problem is fixed (docs/BACKLOG.md §1.1), so
+// demanding /cdn URLs unconditionally would fail this gate against a correct
+// deploy — and a live gate that cries wolf is a live gate nobody reads.
+const PROXIED = process.env.PROXY_IMAGES === '1'
+
 // @vercel/stega hides its payload in Unicode tag characters (U+E0000–U+E007F),
 // which is what makes click-to-edit overlays possible. A published response
 // containing any of them means draft-only data reached a visitor.
@@ -52,7 +59,9 @@ describe.skipIf(!LIVE)('the deployed preview Worker', () => {
 describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
   it('names no third-party origin in its HTML', async () => {
     const html = await (await fetch(`${SITE_URL}/`)).text()
-    expect(html).not.toContain('cdn.sanity.io')
+    // cdn.sanity.io is the one third-party origin the unproxied build is
+    // allowed to name, and with the flag off it is expected to.
+    if (PROXIED) expect(html).not.toContain('cdn.sanity.io')
     expect(html).not.toContain('preview.softmess.de')
   })
 
@@ -61,7 +70,7 @@ describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
     expect(stegaCount(html)).toBe(0)
   })
 
-  it('serves images through its own /cdn proxy', async () => {
+  it.skipIf(!PROXIED)('serves images through its own /cdn proxy', async () => {
     // Takes the first proxied image URL out of the page rather than hard-coding
     // an asset id, so replacing the hero in the Studio cannot break this.
     const html = await (await fetch(`${SITE_URL}/`)).text()

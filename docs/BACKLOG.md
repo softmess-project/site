@@ -321,7 +321,7 @@ apply, and a second proxy route would buy nothing.
 
 ---
 
-## 5. The image proxy — built, tested, not yet deployable
+## 5. The image proxy — built, tested, shipped dormant
 
 `cdn.sanity.io` was the only third-party origin a visitor's browser contacted,
 which forced the privacy policy to disclose that their IP reaches Sanity.

@@ -29,5 +29,16 @@ export default defineConfig({
     // Inlined at build time so `if (import.meta.env.PREVIEW)` branches are
     // eliminated entirely from the static bundle, imports included.
     define: {'import.meta.env.PREVIEW': JSON.stringify(preview)},
+    // Pre-bundle the visual-editing island's chain: react/compiler-runtime is
+    // CommonJS, and served raw it has no named export `c` to import.
+    optimizeDeps: preview
+      ? {
+          include: [
+            'react/compiler-runtime',
+            '@sanity/visual-editing',
+            '@sanity/visual-editing/react',
+          ],
+        }
+      : undefined,
   },
 })

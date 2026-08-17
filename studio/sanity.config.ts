@@ -8,11 +8,11 @@ import {structure} from './structure'
 import {resolve} from './presentation/resolve'
 import {SINGLETON_TYPES} from './lib/singletons'
 
-// Cloudflare Workers egress currently can't complete a TLS handshake to
-// Sanity's API, so the deployed preview Worker 500s. Defaulting to `pnpm dev`
-// (site on :4321) keeps editing usable; flip SANITY_STUDIO_PREVIEW_ORIGIN
-// back to the deployed host once that's fixed — this default is not an
-// oversight.
+// Local dev is the default on purpose, not by oversight: the deployed preview
+// Worker 500s because subrequests from the softmess.de zone to api.sanity.io
+// come back HTTP 525 (see docs/BACKLOG.md §4.1 — measured as zone-scoped, not a
+// code fault). `pnpm dev` puts the site on :4321 and keeps editing usable.
+// CI overrides this with the SANITY_STUDIO_PREVIEW_ORIGIN repository variable.
 const previewOrigin = process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? 'http://localhost:4321'
 
 export default defineConfig({
@@ -25,7 +25,6 @@ export default defineConfig({
   apps: {
     canvas: {enabled: true},
   },
-
   releases: { enabled: false },
 
   plugins: [

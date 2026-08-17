@@ -1,0 +1,64 @@
+---
+import {srcSetFor, urlFor} from '../../lib/image'
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+import Actions from '../Actions.astro'
+
+interface Props extends BlockOfType<'hero'> {
+  semanticLevel: 'h1' | 'h2'
+}
+
+const {heading, statement, body, image, imagePosition, actions, semanticLevel} = Astro.props
+const Heading = semanticLevel
+// A named const, not an inline literal: TS infers `pick`'s type param from the
+// `fallback` argument, so an inline object literal here trips the excess-
+// property check against that narrower inferred type.
+const IMAGE_POSITION = {links: 'order-first', rechts: 'order-last'}
+const order = pick(imagePosition ?? undefined, IMAGE_POSITION, 'rechts')
+---
+
+<section
+  class="relative grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-center gap-[clamp(28px,6vw,72px)] px-[clamp(22px,6vw,88px)] pt-[clamp(8px,3vw,48px)] pb-[clamp(32px,6vw,72px)]"
+>
+  <div class="max-w-[620px]">
+    <Heading
+      class="mb-4 font-display text-[length:var(--text-hero)] leading-none font-normal tracking-[0.01em] text-accent"
+    >
+      {heading}
+    </Heading>
+    {
+      statement && (
+        <p class="mb-6 text-[length:var(--text-statement)] leading-[1.2] font-bold tracking-[-0.01em] text-ink">
+          {statement}
+        </p>
+      )
+    }
+    {
+      body?.map((paragraph, index) => (
+        <p
+          class:list={[
+            'max-w-[44ch] text-[18px] leading-[1.6] text-pretty',
+            index === 0 ? 'mb-2 text-ink' : 'mb-8 text-muted',
+          ]}
+        >
+          {paragraph}
+        </p>
+      ))
+    }
+    <Actions actions={actions} />
+  </div>
+
+  {
+    image?.asset && (
+      <img
+        class:list={['w-full rounded-[28px] object-cover', order]}
+        src={urlFor(image).width(560).height(700).format('webp').quality(80).url()}
+        srcset={srcSetFor(image, 560, 700)}
+        width="560"
+        height="700"
+        alt={image.alt ?? ''}
+        loading="eager"
+      />
+    )
+  }
+</section>

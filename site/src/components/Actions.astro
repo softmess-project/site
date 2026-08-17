@@ -1,0 +1,30 @@
+---
+interface Props {
+  actions?: Array<{_key: string; label?: string | null; href?: string | null}> | null
+}
+const {actions} = Astro.props
+const primary =
+  'flex-[1_1_260px] bg-accent text-bg shadow-sm hover:bg-accent-600 active:bg-accent-700'
+const secondary = 'flex-[1_1_200px] border border-ink/18 text-ink hover:bg-ink/7'
+---
+
+{
+  actions && actions.length > 0 && (
+    <div class="flex flex-wrap items-center gap-3">
+      {actions.map((action, index) => (
+        <a
+          href={action.href}
+          {...action.href?.startsWith('http')
+            ? {target: '_blank', rel: 'noopener noreferrer'}
+            : {}}
+          class:list={[
+            'inline-flex min-h-[54px] items-center justify-center gap-[10px] rounded-full px-[26px] font-sans text-[17px] no-underline',
+            index === 0 ? primary : secondary,
+          ]}
+        >
+          {action.label}
+        </a>
+      ))}
+    </div>
+  )
+}

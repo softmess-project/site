@@ -1,0 +1,30 @@
+---
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+import Actions from '../Actions.astro'
+
+interface Props extends BlockOfType<'cta'> {
+  semanticLevel: 'h1' | 'h2'
+}
+
+const {heading, body, actions, background, semanticLevel} = Astro.props
+const Heading = semanticLevel
+// A named const, not an inline literal: TS infers `pick`'s type param from the
+// `fallback` argument, so an inline object literal here trips the excess-
+// property check against that narrower inferred type.
+const BACKGROUND = {normal: 'bg-transparent', akzent: 'bg-accent-200'}
+const bg = pick(background ?? undefined, BACKGROUND, 'akzent')
+---
+
+<section
+  class:list={[
+    'relative flex flex-col items-start gap-4 px-[clamp(22px,6vw,88px)] py-[clamp(32px,5vw,64px)]',
+    bg,
+  ]}
+>
+  <Heading class="font-display text-[length:var(--text-page-title)] font-normal text-accent">
+    {heading}
+  </Heading>
+  {body && <p class="max-w-[52ch] text-[18px] leading-[1.6] text-pretty text-ink">{body}</p>}
+  <Actions actions={actions} />
+</section>

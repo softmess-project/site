@@ -1,0 +1,48 @@
+---
+import {srcSetFor, urlFor} from '../../lib/image'
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+import Actions from '../Actions.astro'
+
+interface Props extends BlockOfType<'imageText'> {
+  semanticLevel: 'h1' | 'h2'
+}
+
+const {image, heading, body, actions, imagePosition, background, semanticLevel} = Astro.props
+const Heading = semanticLevel
+// Named consts, not inline literals: TS infers `pick`'s type param from the
+// `fallback` argument, so an inline object literal here trips the excess-
+// property check against that narrower inferred type.
+const IMAGE_POSITION = {links: 'order-first', rechts: 'order-last'}
+const BACKGROUND = {normal: 'bg-transparent', sand: 'bg-sand-200', akzent: 'bg-accent-200'}
+const order = pick(imagePosition ?? undefined, IMAGE_POSITION, 'links')
+const bg = pick(background ?? undefined, BACKGROUND, 'normal')
+---
+
+<section
+  class:list={[
+    'relative grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-center gap-[clamp(28px,6vw,64px)] px-[clamp(22px,6vw,88px)] py-[clamp(32px,5vw,64px)]',
+    bg,
+  ]}
+>
+  {
+    image?.asset && (
+      <img
+        class:list={['w-full rounded-[28px] object-cover', order]}
+        src={urlFor(image).width(560).height(560).format('webp').quality(80).url()}
+        srcset={srcSetFor(image, 560, 560)}
+        width="560"
+        height="560"
+        alt={image.alt ?? ''}
+        loading="lazy"
+      />
+    )
+  }
+  <div class="max-w-[560px]">
+    <Heading class="mb-4 font-display text-[length:var(--text-page-title)] font-normal text-accent">
+      {heading}
+    </Heading>
+    {body && <p class="mb-6 max-w-[44ch] text-[18px] leading-[1.6] text-pretty text-ink">{body}</p>}
+    <Actions actions={actions} />
+  </div>
+</section>

@@ -1,0 +1,18 @@
+---
+import Prose from '../Prose.astro'
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+
+type Props = BlockOfType<'richText'>
+
+const {content, width} = Astro.props
+// A named const, not an inline literal: TS infers `pick`'s type param from the
+// `fallback` argument, so an inline object literal here trips the excess-
+// property check against that narrower inferred type.
+const WIDTH = {schmal: 'max-w-[760px]', breit: 'max-w-[1100px]'}
+const maxWidth = pick(width ?? undefined, WIDTH, 'schmal')
+---
+
+<section class:list={['relative px-[clamp(24px,6vw,88px)] py-[clamp(24px,4vw,48px)]', maxWidth]}>
+  <Prose value={content} />
+</section>

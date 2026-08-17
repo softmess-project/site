@@ -27,11 +27,39 @@ export const SITE_SETTINGS_QUERY = defineQuery(`
   }
 `)
 
+// `_key` and `_type` must be projected on every array member — they are the
+// render key and the switch discriminant, and stega source maps need `_key`
+// to resolve an array path.
+const PAGE_BUILDER_PROJECTION = `
+  pageBuilder[]{
+    _key, _type,
+    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},
+    _type == "richText" => {content, width},
+    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},
+    _type == "gallery" => {images[]{_key, alt, asset}, columns},
+    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}
+  }
+`
+
 export const HOME_PAGE_QUERY = defineQuery(`
-  *[_id == "homePage" && _type == "homePage"][0]{
-    heading, statement, body,
-    charm{alt, asset},
-    actions[]{_key, label, href}
+  *[_id == "homePage" && _type == "homePage"][0]{${PAGE_BUILDER_PROJECTION}}
+`)
+
+export const PAGE_SLUGS_QUERY = defineQuery(`
+  *[_type == "page" && defined(slug.current)].slug.current
+`)
+
+export const PAGE_QUERY = defineQuery(`
+  *[_type == "page" && slug.current == $slug][0]{
+    title, "slug": slug.current, seo{title, description},
+    ${PAGE_BUILDER_PROJECTION}
+  }
+`)
+
+export const NAV_QUERY = defineQuery(`
+  *[_id == "siteSettings"][0]{
+    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},
+    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}
   }
 `)
 

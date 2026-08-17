@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "seed": "node --env-file=../.env --env-file=../.env.local seed.ts",
     "migrate": "node --env-file=../.env --env-file=../.env.local migrate.ts"
   },
   "dependencies": {

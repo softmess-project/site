@@ -37,8 +37,22 @@ one read-through by you, particularly the privacy policy, which was rewritten to
 (it now describes what the site actually does — no cookies, self-hosted fonts, images from
 `cdn.sanity.io` with the IP consequence spelled out) rather than boilerplate.
 
--> reviewed and fixed. assume sanity is correct; remove the seed script locally, or replace it with 
-   lorem ipsum to avoid hardcoding dynamic copy.
+**Done.** Reviewed by the owner; Sanity is now the single source of truth. `seed/seed.ts` is deleted
+rather than rewritten with lorem ipsum — it duplicated the imprint and the privacy policy as
+hardcoded German strings, which is a second source of truth for legally significant wording, and it
+still wrote the pre-page-builder `homePage` shape (`heading`/`statement`/`body`/`charm`/`actions`),
+fields the schema no longer defines. Running it would have produced a broken home page.
+
+Two leftovers in `seed/`, both harmless but worth a decision:
+
+- `migrate.ts` — the one-shot page-builder migration. Already applied and now inert (a dry run
+  proposes 0 mutations). Kept as a record; safe to delete whenever you like.
+- `images/charm-red.jpg`, `charm-green.jpg` — the originals, ~1 MB. Both are already uploaded to
+  Sanity and `charm-red` is the live hero image, but these are the local source files, so I left them
+  alone rather than deleting photos you may not have elsewhere.
+
+To restore content from scratch, the dataset export (`backup-20260817-full.tar.gz`) is the path now,
+not a seed script.
 
 ### 1.4 Task 11 — the usability session
 

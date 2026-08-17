@@ -1,7 +1,6 @@
 packages:
   - site
   - studio
-  - seed
 
 peerDependencyRules:
   allowedVersions:

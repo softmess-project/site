@@ -224,6 +224,46 @@ After §5 that is no longer true — images come from our own origin. The text l
 in Sanity (`Datenschutz` page), not in this repo, so delete that passage in the
 Studio. Do it when 1.1 is fixed and the proxy actually ships, not before.
 
+### 1.6 Put Cloudflare Access in front of `preview.softmess.de` — **one field, and it closes a live hole**
+
+Today `preview.softmess.de` is a public custom domain that answers anonymous
+requests, and `isDraftMode` accepts any request carrying `sanity-draft-mode=1` —
+the literal constant the handshake sets. So
+`curl -H 'Cookie: sanity-draft-mode=1' https://preview.softmess.de/` returns
+every unpublished draft plus the stega payloads. The `validatePreviewUrl`
+handshake protects nothing once anyone has seen the cookie's shape.
+
+The design spec asked for a *signed* cookie. Access was chosen instead: it moves
+the gate to the perimeter, matches how `softmess.de` is already protected, and
+needs no crypto in the Worker. The code side is done — `draft.ts` records why the
+bare `1` is acceptable behind a perimeter, and `live.test.ts` now asserts the
+gate is up, so removing Access fails the live gate instead of silently
+re-opening the hole.
+
+**What is left is one dashboard change.** In **Zero Trust → Access →
+Applications** (team domain `feinschliff-studio.cloudflareaccess.com`), open the
+existing `softmess.de` application and add `preview.softmess.de` as an
+additional domain. That inherits the policy already protecting the public site,
+so there is no second policy to keep in sync and no identity decision to make.
+
+Not done from here because the API token in `.env.local` lacks Access
+permissions: `access/groups` and `access/organizations` both answer
+`Authentication error`, and `access/apps` reports an empty list even though
+`softmess.de` visibly redirects to the Access login. Creating an application
+blind would mean guessing the identity provider and the allowed identities —
+which either locks the editor out or leaves the host open.
+
+**Know this before you turn it on:** the Studio loads the preview host in an
+iframe, and Access answers an unauthenticated request with a redirect to a login
+page that will not render usefully inside that frame. Log in to
+`https://preview.softmess.de/` once in a normal tab; the `CF_Authorization`
+cookie is same-site with `studio.softmess.de` (shared registrable domain), so
+the iframe then carries it.
+
+To verify: `LIVE=1 pnpm verify:live`. The gate assertion runs unauthenticated;
+the four assertions behind it need `PREVIEW_COOKIE='CF_Authorization=…'` copied
+from a logged-in browser, and skip without it.
+
 ---
 
 ## 2. Answered

@@ -32,26 +32,51 @@ function stegaCount(html: string): number {
   return html.match(STEGA)?.length ?? 0
 }
 
+// Cloudflare Access fronts the preview host, which is what makes the draft
+// cookie's bare `1` safe: an anonymous request never reaches the Worker, so
+// the cookie gates published-vs-draft for people already through the
+// perimeter rather than gating the drafts themselves.
+//
+// Everything behind that perimeter therefore needs a session. Set
+// PREVIEW_COOKIE to a `CF_Authorization=…` cookie — copy it from a browser
+// that has logged in — to run those assertions; without it they skip and only
+// the gate itself is checked.
+const PREVIEW_COOKIE = process.env.PREVIEW_COOKIE
+
+function asEditor(path: string) {
+  return fetch(`${PREVIEW_URL}${path}`, {
+    redirect: 'manual',
+    headers: PREVIEW_COOKIE ? {cookie: PREVIEW_COOKIE} : {},
+  })
+}
+
 describe.skipIf(!LIVE)('the deployed preview Worker', () => {
-  it('renders without a draft cookie', async () => {
-    const response = await fetch(`${PREVIEW_URL}/`)
+  it('is gated by Cloudflare Access', async () => {
+    // Deliberately unauthenticated, whatever PREVIEW_COOKIE holds. This is the
+    // assertion that would catch the gate being removed, which is the only
+    // thing standing between the internet and every unpublished draft.
+    const response = await fetch(`${PREVIEW_URL}/`, {redirect: 'manual'})
+    expect(response.status, 'preview host served an anonymous request').not.toBe(200)
+    expect(response.headers.get('location') ?? '').toContain('cloudflareaccess.com')
+  })
+
+  it.skipIf(!PREVIEW_COOKIE)('renders for an authenticated editor', async () => {
+    const response = await asEditor('/')
     expect(response.status, await response.text().catch(() => '')).toBe(200)
   })
 
-  it('leaks no draft content to a request without the cookie', async () => {
-    // The point of the whole draft-mode design: the preview host is reachable,
-    // but without the cookie it must answer with published content only.
-    const html = await (await fetch(`${PREVIEW_URL}/`)).text()
-    expect(stegaCount(html)).toBe(0)
+  it.skipIf(!PREVIEW_COOKIE)('leaks no draft content without the draft cookie', async () => {
+    // Past the perimeter but without the draft cookie, the answer must still be
+    // published content only.
+    expect(stegaCount(await (await asEditor('/')).text())).toBe(0)
   })
 
-  it('refuses a draft-mode handshake with no secret', async () => {
-    const response = await fetch(`${PREVIEW_URL}/api/draft-mode/enable`, {redirect: 'manual'})
-    expect(response.status).toBe(401)
+  it.skipIf(!PREVIEW_COOKIE)('refuses a draft-mode handshake with no secret', async () => {
+    expect((await asEditor('/api/draft-mode/enable')).status).toBe(401)
   })
 
-  it('sets no draft cookie on a rejected handshake', async () => {
-    const response = await fetch(`${PREVIEW_URL}/api/draft-mode/enable`, {redirect: 'manual'})
+  it.skipIf(!PREVIEW_COOKIE)('sets no draft cookie on a rejected handshake', async () => {
+    const response = await asEditor('/api/draft-mode/enable')
     expect(response.headers.get('set-cookie') ?? '').not.toContain('sanity-draft-mode')
   })
 })

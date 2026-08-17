@@ -576,7 +576,7 @@ export type PAGE_QUERY_RESULT = {
 
 // Source: ../site/src/lib/content.ts
 // Variable: NAV_QUERY
-// Query: *[_id == "siteSettings"][0]{    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}  }
+// Query: *[_id == "siteSettings"][0]{    headerLinks[defined(page->slug.current)]{_key, label, "title": page->title, "slug": page->slug.current},    footerLinks[defined(page->slug.current)]{_key, label, "title": page->title, "slug": page->slug.current}  }
 export type NAV_QUERY_RESULT =
   | {
       headerLinks: null

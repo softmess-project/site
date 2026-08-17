@@ -109,11 +109,24 @@ async function main() {
     })
   }
 
-  // 3. The nav LEGAL_PAGE_NAV_QUERY used to derive becomes explicit. Only
-  //    touch it when there is something real to point it at — once the
-  //    legalPage docs are gone (the normal post-migration state), an empty
-  //    pageIds here must never overwrite a live footerLinks with [].
-  if (Object.keys(pageIds).length > 0) {
+  // 3. The nav LEGAL_PAGE_NAV_QUERY used to derive becomes explicit. This
+  //    ESTABLISHES footerLinks once; it never re-establishes them. Two
+  //    distinct ways a re-run could destroy live data, both guarded here:
+  //      - empty pageIds (no pages found) would set footerLinks: [], wiping
+  //        the footer nav entirely;
+  //      - a non-empty rebuild would silently revert whatever the owner has
+  //        since done in the Studio — reordered the links, renamed one, added
+  //        a third — back to exactly [impressum, datenschutz].
+  //    Neither is recoverable from the script's own output, so if footerLinks
+  //    already holds anything, it is left strictly alone.
+  const existingFooterLinks = await client.fetch<unknown[] | null>(
+    '*[_id == "siteSettings"][0].footerLinks',
+  )
+  if (existingFooterLinks && existingFooterLinks.length > 0) {
+    console.log(
+      `siteSettings.footerLinks already has ${existingFooterLinks.length} entries — leaving it untouched`,
+    )
+  } else if (Object.keys(pageIds).length > 0) {
     mutations.push({
       patch: {
         id: 'siteSettings',

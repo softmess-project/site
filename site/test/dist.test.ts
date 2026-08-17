@@ -54,6 +54,14 @@ describe('built pages', () => {
 })
 
 describe('home page', () => {
+  // Split deliberately: the exact copy is fixture-only, but "the hero says
+  // something at all" must hold for the real build too — otherwise a hero
+  // with an empty heading ships past every remaining assertion here.
+  it('renders a non-empty hero heading', () => {
+    const h1 = doc('index.html').querySelector('main > section:first-child h1')
+    expect(h1?.textContent?.trim().length).toBeGreaterThan(0)
+  })
+
   it.skipIf(REAL_CONTENT)('renders the hero copy', () => {
     const text = doc('index.html').body.textContent ?? ''
     expect(text).toContain('softmess')
@@ -201,10 +209,13 @@ describe('page builder', () => {
     expect(d.querySelector('main > section:first-child h1')).not.toBeNull()
   })
 
-  it('maps variants to classes rather than falling through to defaults', () => {
-    // The sand-background imageText block in the fixtures proves the variant
-    // reached a class instead of silently defaulting.
-    expect(doc('index.html').querySelector('.bg-sand-200')).not.toBeNull()
+  it.skipIf(REAL_CONTENT)('maps variants to classes rather than falling through to defaults', () => {
+    // The sand-background imageText block proves the variant reached a class
+    // instead of silently defaulting. The selector must be anchored to the
+    // block's own <section>: a bare `.bg-sand-200` also matches a decorative
+    // blob in the page chrome, which sits outside <main> and would make this
+    // assertion pass in a build that has no imageText block at all.
+    expect(doc('index.html').querySelector('main > section.bg-sand-200')).not.toBeNull()
   })
 
   it('keeps the preview hostname out of the static build', () => {

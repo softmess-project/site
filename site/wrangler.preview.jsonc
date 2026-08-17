@@ -1,7 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "softmess-preview",
-  "main": "./dist/server/entry.mjs",
+  // No "main" and no bundling hints on purpose. This file is the *source*
+  // config @astrojs/cloudflare reads (astro.config.mjs names it via
+  // `configPath`); the adapter writes the deployable config to
+  // dist/server/wrangler.json, injecting main: "entry.mjs" and rewriting
+  // assets.directory relative to it. Declaring main here instead fails the
+  // build on a clean tree — the Cloudflare Vite plugin validates that the file
+  // exists before the build has produced it.
+  //
+  // Deploy with plain `wrangler deploy` from site/, which follows
+  // .wrangler/deploy/config.json to the generated config. Passing
+  // `--config wrangler.preview.jsonc` overrides that redirect and uploads
+  // entry.mjs without its chunks: it deploys cleanly, then 404s every route.
   "compatibility_date": "2026-08-15",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {

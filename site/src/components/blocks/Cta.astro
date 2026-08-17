@@ -9,9 +9,6 @@ interface Props extends BlockOfType<'cta'> {
 
 const {heading, body, actions, background, semanticLevel} = Astro.props
 const Heading = semanticLevel
-// A named const, not an inline literal: TS infers `pick`'s type param from the
-// `fallback` argument, so an inline object literal here trips the excess-
-// property check against that narrower inferred type.
 const BACKGROUND = {normal: 'bg-transparent', akzent: 'bg-accent-200'}
 const bg = pick(background ?? undefined, BACKGROUND, 'akzent')
 ---

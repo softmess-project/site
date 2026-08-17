@@ -10,9 +10,6 @@ interface Props extends BlockOfType<'imageText'> {
 
 const {image, heading, body, actions, imagePosition, background, semanticLevel} = Astro.props
 const Heading = semanticLevel
-// Named consts, not inline literals: TS infers `pick`'s type param from the
-// `fallback` argument, so an inline object literal here trips the excess-
-// property check against that narrower inferred type.
 const IMAGE_POSITION = {links: 'order-first', rechts: 'order-last'}
 const BACKGROUND = {normal: 'bg-transparent', sand: 'bg-sand-200', akzent: 'bg-accent-200'}
 const order = pick(imagePosition ?? undefined, IMAGE_POSITION, 'links')

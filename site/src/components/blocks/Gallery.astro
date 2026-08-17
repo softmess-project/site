@@ -6,9 +6,6 @@ import type {BlockOfType} from '../../lib/blocks'
 type Props = BlockOfType<'gallery'>
 
 const {images, columns} = Astro.props
-// A named const, not an inline literal: TS infers `pick`'s type param from the
-// `fallback` argument, so an inline object literal here trips the excess-
-// property check against that narrower inferred type.
 const COLUMNS = {'2': 'sm:grid-cols-2', '3': 'sm:grid-cols-3'}
 const grid = pick(columns ?? undefined, COLUMNS, '3')
 ---

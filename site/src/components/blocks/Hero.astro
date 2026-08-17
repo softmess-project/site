@@ -10,11 +10,10 @@ interface Props extends BlockOfType<'hero'> {
 
 const {heading, statement, body, image, imagePosition, actions, semanticLevel} = Astro.props
 const Heading = semanticLevel
-// A named const, not an inline literal: TS infers `pick`'s type param from the
-// `fallback` argument, so an inline object literal here trips the excess-
-// property check against that narrower inferred type.
 const IMAGE_POSITION = {links: 'order-first', rechts: 'order-last'}
 const order = pick(imagePosition ?? undefined, IMAGE_POSITION, 'rechts')
+const WIDTH = 380
+const HEIGHT = Math.round(WIDTH * 1.25) // the mockup's 4:5 charm silhouette
 ---
 
 <section
@@ -50,15 +49,19 @@ const order = pick(imagePosition ?? undefined, IMAGE_POSITION, 'rechts')
 
   {
     image?.asset && (
-      <img
-        class:list={['w-full rounded-[28px] object-cover', order]}
-        src={urlFor(image).width(560).height(700).format('webp').quality(80).url()}
-        srcset={srcSetFor(image, 560, 700)}
-        width="560"
-        height="700"
-        alt={image.alt ?? ''}
-        loading="eager"
-      />
+      <figure class:list={['relative m-0 justify-self-center', order]}>
+        <div class="absolute inset-y-[-6%] inset-x-[-8%] rounded-full bg-surface opacity-70"></div>
+        <img
+          class="charm-blob washed animate-drift relative w-[min(380px,74vw)] aspect-[4/5] object-cover shadow-charm"
+          src={urlFor(image).width(WIDTH).height(HEIGHT).format('webp').quality(80).url()}
+          srcset={srcSetFor(image, WIDTH, HEIGHT)}
+          width={WIDTH}
+          height={HEIGHT}
+          alt={image.alt ?? ''}
+          loading="eager"
+          decoding="async"
+        />
+      </figure>
     )
   }
 </section>

@@ -6,7 +6,14 @@ export function clean(value: string | undefined): string | undefined {
   return value === undefined ? undefined : (stegaClean(value) as string)
 }
 
-/** Map a variant string to a class, falling back when it is missing or unknown. */
+/**
+ * Map a variant string to a class, falling back when it is missing or unknown.
+ *
+ * Callers must pass `map` as a named const, not an inline object literal: TS
+ * infers `pick`'s type param from the `fallback` argument, so an inline
+ * object literal here trips the excess-property check against that
+ * narrower inferred type.
+ */
 export function pick<T extends string>(
   value: string | undefined,
   map: Record<T, string>,

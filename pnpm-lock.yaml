@@ -12,12 +12,6 @@ importers:
         specifier: ^10.0.5
         version: 10.0.5
 
-  seed:
-    dependencies:
-      '@sanity/client':
-        specifier: ^8.0.0
-        version: 8.0.0(vitest@4.1.10(@types/node@26.2.0)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)))
-
   site:
     dependencies:
       '@fontsource/bagel-fat-one':

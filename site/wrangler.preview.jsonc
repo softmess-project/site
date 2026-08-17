@@ -15,6 +15,21 @@
   // entry.mjs without its chunks: it deploys cleanly, then 404s every route.
   "compatibility_date": "2026-08-15",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    // The same two non-secret values wrangler.jsonc declares, and they have to
+    // be declared *here*: the adapter copies this file's vars into the
+    // generated dist/server/wrangler.json, and `wrangler deploy` replaces the
+    // Worker's plain-text vars with whatever that config holds. Absent, it
+    // wrote `"vars": {}` and cleared them, so @sanity/client threw
+    // "Configuration must contain 'projectId'" at module load — a 500 on every
+    // route, indistinguishable from the zone's outbound-TLS fault.
+    //
+    // SANITY_API_TOKEN is not here on purpose. It is a secret
+    // (`wrangler secret put SANITY_API_TOKEN`), and a deploy leaves secrets
+    // alone — only plain-text vars are replaced.
+    "SANITY_PROJECT_ID": "85i3osnk",
+    "SANITY_DATASET": "production",
+  },
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",

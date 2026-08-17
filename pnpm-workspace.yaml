@@ -1,7 +1,15 @@
 packages:
   - site
   - studio
-  - seed
+
+peerDependencyRules:
+  allowedVersions:
+    '@sanity/astro>@sanity/client': '8'
+    '@sanity/preview-url-secret>@sanity/client': '8'
+  ignoreMissing:
+    - sanity
+    - styled-components
+    - react-is
 
 allowBuilds:
   esbuild: true

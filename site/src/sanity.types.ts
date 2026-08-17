@@ -12,230 +12,341 @@
  * ---------------------------------------------------------------------------------
  */
 
-export declare const internalGroqTypeReferenceTo: unique symbol;
+export declare const internalGroqTypeReferenceTo: unique symbol
 
 // Source: schema.json
 export type Action = {
-  _type: "action";
-  label?: string;
-  href?: string;
-};
+  _type: 'action'
+  label?: string
+  href?: string
+}
 
-export type LegalPage = {
-  _id: string;
-  _type: "legalPage";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  title?: string;
-  slug?: Slug;
-  kicker?: string;
-  body?: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "normal" | "h2";
-    listItem?: never;
-    markDefs?: Array<{
-      href?: string;
-      _type: "link";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }>;
-};
-
-export type Slug = {
-  _type: "slug";
-  current?: string;
-  source?: string;
-};
-
-export type SanityImageAssetReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-};
-
-export type HomePage = {
-  _id: string;
-  _type: "homePage";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  heading?: string;
-  statement?: string;
-  body?: Array<string>;
-  charm?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    alt?: string;
-    _type: "image";
-  };
+export type Cta = {
+  _type: 'cta'
+  heading?: string
+  body?: string
   actions?: Array<
     {
-      _key: string;
+      _key: string
     } & Action
-  >;
-};
+  >
+  background?: 'normal' | 'akzent'
+}
+
+export type SanityImageAssetReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'sanity.imageAsset'
+}
+
+export type Gallery = {
+  _type: 'gallery'
+  images?: Array<{
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+    _key: string
+  }>
+  columns?: '2' | '3'
+}
+
+export type ImageText = {
+  _type: 'imageText'
+  image?: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  heading?: string
+  body?: string
+  actions?: Array<
+    {
+      _key: string
+    } & Action
+  >
+  imagePosition?: 'links' | 'rechts'
+  background?: 'normal' | 'sand' | 'akzent'
+}
+
+export type RichText = {
+  _type: 'richText'
+  content?: Array<{
+    children?: Array<{
+      marks?: Array<string>
+      text?: string
+      _type: 'span'
+      _key: string
+    }>
+    style?: 'normal' | 'h2'
+    listItem?: 'bullet'
+    markDefs?: Array<{
+      href?: string
+      _type: 'link'
+      _key: string
+    }>
+    level?: number
+    _type: 'block'
+    _key: string
+  }>
+  width?: 'schmal' | 'breit'
+}
+
+export type Hero = {
+  _type: 'hero'
+  heading?: string
+  statement?: string
+  body?: Array<string>
+  image?: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+  imagePosition?: 'links' | 'rechts'
+  actions?: Array<
+    {
+      _key: string
+    } & Action
+  >
+}
+
+export type PageBuilder = Array<
+  | ({
+      _key: string
+    } & Hero)
+  | ({
+      _key: string
+    } & RichText)
+  | ({
+      _key: string
+    } & ImageText)
+  | ({
+      _key: string
+    } & Gallery)
+  | ({
+      _key: string
+    } & Cta)
+>
+
+export type PageReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'page'
+}
+
+export type NavLink = {
+  _type: 'navLink'
+  label?: string
+  page?: PageReference
+}
+
+export type Page = {
+  _id: string
+  _type: 'page'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  title?: string
+  slug?: Slug
+  pageBuilder?: PageBuilder
+  seo?: {
+    title?: string
+    description?: string
+  }
+}
+
+export type Slug = {
+  _type: 'slug'
+  current?: string
+  source?: string
+}
+
+export type HomePage = {
+  _id: string
+  _type: 'homePage'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  pageBuilder?: PageBuilder
+}
 
 export type SanityImageCrop = {
-  _type: "sanity.imageCrop";
-  top?: number;
-  bottom?: number;
-  left?: number;
-  right?: number;
-};
+  _type: 'sanity.imageCrop'
+  top?: number
+  bottom?: number
+  left?: number
+  right?: number
+}
 
 export type SanityImageHotspot = {
-  _type: "sanity.imageHotspot";
-  x?: number;
-  y?: number;
-  height?: number;
-  width?: number;
-};
+  _type: 'sanity.imageHotspot'
+  x?: number
+  y?: number
+  height?: number
+  width?: number
+}
 
 export type SiteSettings = {
-  _id: string;
-  _type: "siteSettings";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  brand?: string;
-  tagline?: string;
-  email?: string;
-  instagram?: string;
-  instagramHandle?: string;
-  copyright?: string;
-  backLabel?: string;
-  instagramLabel?: string;
+  _id: string
+  _type: 'siteSettings'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  brand?: string
+  tagline?: string
+  email?: string
+  instagram?: string
+  instagramHandle?: string
+  copyright?: string
+  backLabel?: string
+  instagramLabel?: string
+  headerLinks?: Array<
+    {
+      _key: string
+    } & NavLink
+  >
+  footerLinks?: Array<
+    {
+      _key: string
+    } & NavLink
+  >
   notFound?: {
-    heading?: string;
-    body?: string;
-  };
+    heading?: string
+    body?: string
+  }
   seo?: {
-    title?: string;
-    description?: string;
+    title?: string
+    description?: string
     ogImage?: {
-      asset?: SanityImageAssetReference;
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    };
-  };
-};
+      asset?: SanityImageAssetReference
+      media?: unknown
+      hotspot?: SanityImageHotspot
+      crop?: SanityImageCrop
+      _type: 'image'
+    }
+  }
+}
 
 export type SanityImagePaletteSwatch = {
-  _type: "sanity.imagePaletteSwatch";
-  background?: string;
-  foreground?: string;
-  population?: number;
-  title?: string;
-};
+  _type: 'sanity.imagePaletteSwatch'
+  background?: string
+  foreground?: string
+  population?: number
+  title?: string
+}
 
 export type SanityImagePalette = {
-  _type: "sanity.imagePalette";
-  darkMuted?: SanityImagePaletteSwatch;
-  lightVibrant?: SanityImagePaletteSwatch;
-  darkVibrant?: SanityImagePaletteSwatch;
-  vibrant?: SanityImagePaletteSwatch;
-  dominant?: SanityImagePaletteSwatch;
-  lightMuted?: SanityImagePaletteSwatch;
-  muted?: SanityImagePaletteSwatch;
-};
+  _type: 'sanity.imagePalette'
+  darkMuted?: SanityImagePaletteSwatch
+  lightVibrant?: SanityImagePaletteSwatch
+  darkVibrant?: SanityImagePaletteSwatch
+  vibrant?: SanityImagePaletteSwatch
+  dominant?: SanityImagePaletteSwatch
+  lightMuted?: SanityImagePaletteSwatch
+  muted?: SanityImagePaletteSwatch
+}
 
 export type SanityImageDimensions = {
-  _type: "sanity.imageDimensions";
-  height?: number;
-  width?: number;
-  aspectRatio?: number;
-};
+  _type: 'sanity.imageDimensions'
+  height?: number
+  width?: number
+  aspectRatio?: number
+}
 
 export type SanityImageMetadata = {
-  _type: "sanity.imageMetadata";
-  location?: Geopoint;
-  dimensions?: SanityImageDimensions;
-  palette?: SanityImagePalette;
-  lqip?: string;
-  blurHash?: string;
-  thumbHash?: string;
-  hasAlpha?: boolean;
-  isOpaque?: boolean;
-};
+  _type: 'sanity.imageMetadata'
+  location?: Geopoint
+  dimensions?: SanityImageDimensions
+  palette?: SanityImagePalette
+  lqip?: string
+  blurHash?: string
+  thumbHash?: string
+  hasAlpha?: boolean
+  isOpaque?: boolean
+}
 
 export type SanityFileAsset = {
-  _id: string;
-  _type: "sanity.fileAsset";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  originalFilename?: string;
-  label?: string;
-  title?: string;
-  description?: string;
-  altText?: string;
-  sha1hash?: string;
-  extension?: string;
-  mimeType?: string;
-  size?: number;
-  assetId?: string;
-  uploadId?: string;
-  path?: string;
-  url?: string;
-  source?: SanityAssetSourceData;
-};
+  _id: string
+  _type: 'sanity.fileAsset'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  originalFilename?: string
+  label?: string
+  title?: string
+  description?: string
+  altText?: string
+  sha1hash?: string
+  extension?: string
+  mimeType?: string
+  size?: number
+  assetId?: string
+  uploadId?: string
+  path?: string
+  url?: string
+  source?: SanityAssetSourceData
+}
 
 export type SanityAssetSourceData = {
-  _type: "sanity.assetSourceData";
-  name?: string;
-  id?: string;
-  url?: string;
-};
+  _type: 'sanity.assetSourceData'
+  name?: string
+  id?: string
+  url?: string
+}
 
 export type SanityImageAsset = {
-  _id: string;
-  _type: "sanity.imageAsset";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  originalFilename?: string;
-  label?: string;
-  title?: string;
-  description?: string;
-  altText?: string;
-  sha1hash?: string;
-  extension?: string;
-  mimeType?: string;
-  size?: number;
-  assetId?: string;
-  uploadId?: string;
-  path?: string;
-  url?: string;
-  metadata?: SanityImageMetadata;
-  source?: SanityAssetSourceData;
-};
+  _id: string
+  _type: 'sanity.imageAsset'
+  _createdAt: string
+  _updatedAt: string
+  _rev: string
+  originalFilename?: string
+  label?: string
+  title?: string
+  description?: string
+  altText?: string
+  sha1hash?: string
+  extension?: string
+  mimeType?: string
+  size?: number
+  assetId?: string
+  uploadId?: string
+  path?: string
+  url?: string
+  metadata?: SanityImageMetadata
+  source?: SanityAssetSourceData
+}
 
 export type Geopoint = {
-  _type: "geopoint";
-  lat?: number;
-  lng?: number;
-  alt?: number;
-};
+  _type: 'geopoint'
+  lat?: number
+  lng?: number
+  alt?: number
+}
 
 export type AllSanitySchemaTypes =
   | Action
-  | LegalPage
-  | Slug
+  | Cta
   | SanityImageAssetReference
+  | Gallery
+  | ImageText
+  | RichText
+  | Hero
+  | PageBuilder
+  | PageReference
+  | NavLink
+  | Page
+  | Slug
   | HomePage
   | SanityImageCrop
   | SanityImageHotspot
@@ -247,103 +358,242 @@ export type AllSanitySchemaTypes =
   | SanityFileAsset
   | SanityAssetSourceData
   | SanityImageAsset
-  | Geopoint;
+  | Geopoint
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
 // Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    seo{title, description, ogImage}  }
 export type SITE_SETTINGS_QUERY_RESULT = {
-  brand: string | null;
-  tagline: string | null;
-  email: string | null;
-  instagram: string | null;
-  instagramHandle: string | null;
-  copyright: string | null;
-  backLabel: string | null;
-  instagramLabel: string | null;
+  brand: string | null
+  tagline: string | null
+  email: string | null
+  instagram: string | null
+  instagramHandle: string | null
+  copyright: string | null
+  backLabel: string | null
+  instagramLabel: string | null
   notFound: {
-    heading: string | null;
-    body: string | null;
-  } | null;
+    heading: string | null
+    body: string | null
+  } | null
   seo: {
-    title: string | null;
-    description: string | null;
+    title: string | null
+    description: string | null
     ogImage: {
-      asset?: SanityImageAssetReference;
-      media?: unknown;
-      hotspot?: SanityImageHotspot;
-      crop?: SanityImageCrop;
-      _type: "image";
-    } | null;
-  } | null;
-} | null;
+      asset?: SanityImageAssetReference
+      media?: unknown
+      hotspot?: SanityImageHotspot
+      crop?: SanityImageCrop
+      _type: 'image'
+    } | null
+  } | null
+} | null
 
 // Source: ../site/src/lib/content.ts
 // Variable: HOME_PAGE_QUERY
-// Query: *[_id == "homePage" && _type == "homePage"][0]{    heading, statement, body,    charm{alt, asset},    actions[]{_key, label, href}  }
+// Query: *[_id == "homePage" && _type == "homePage"][0]{  pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},    _type == "richText" => {content, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}  }}
 export type HOME_PAGE_QUERY_RESULT = {
-  heading: string | null;
-  statement: string | null;
-  body: Array<string> | null;
-  charm: {
-    alt: string | null;
-    asset: SanityImageAssetReference | null;
-  } | null;
-  actions: Array<{
-    _key: string;
-    label: string | null;
-    href: string | null;
-  }> | null;
-} | null;
+  pageBuilder: Array<
+    | {
+        _key: string
+        _type: 'cta'
+        heading: string | null
+        body: string | null
+        background: 'akzent' | 'normal' | null
+        actions: Array<{
+          _key: string
+          label: string | null
+          href: string | null
+        }> | null
+      }
+    | {
+        _key: string
+        _type: 'gallery'
+        images: Array<{
+          _key: string
+          alt: string | null
+          asset: SanityImageAssetReference | null
+        }> | null
+        columns: '2' | '3' | null
+      }
+    | {
+        _key: string
+        _type: 'hero'
+        heading: string | null
+        statement: string | null
+        body: Array<string> | null
+        image: {
+          alt: string | null
+          asset: SanityImageAssetReference | null
+        } | null
+        imagePosition: 'links' | 'rechts' | null
+        actions: Array<{
+          _key: string
+          label: string | null
+          href: string | null
+        }> | null
+      }
+    | {
+        _key: string
+        _type: 'imageText'
+        image: {
+          alt: string | null
+          asset: SanityImageAssetReference | null
+        } | null
+        heading: string | null
+        body: string | null
+        imagePosition: 'links' | 'rechts' | null
+        background: 'akzent' | 'normal' | 'sand' | null
+        actions: Array<{
+          _key: string
+          label: string | null
+          href: string | null
+        }> | null
+      }
+    | {
+        _key: string
+        _type: 'richText'
+        content: Array<{
+          children?: Array<{
+            marks?: Array<string>
+            text?: string
+            _type: 'span'
+            _key: string
+          }>
+          style?: 'h2' | 'normal'
+          listItem?: 'bullet'
+          markDefs?: Array<{
+            href?: string
+            _type: 'link'
+            _key: string
+          }>
+          level?: number
+          _type: 'block'
+          _key: string
+        }> | null
+        width: 'breit' | 'schmal' | null
+      }
+  > | null
+} | null
 
 // Source: ../site/src/lib/content.ts
-// Variable: LEGAL_PAGE_SLUGS_QUERY
-// Query: *[_type == "legalPage" && defined(slug.current)].slug.current
-export type LEGAL_PAGE_SLUGS_QUERY_RESULT = Array<string | null>;
+// Variable: PAGE_SLUGS_QUERY
+// Query: *[_type == "page" && defined(slug.current)].slug.current
+export type PAGE_SLUGS_QUERY_RESULT = Array<string | null>
 
 // Source: ../site/src/lib/content.ts
-// Variable: LEGAL_PAGE_QUERY
-// Query: *[_type == "legalPage" && slug.current == $slug][0]{    title, kicker, body, "slug": slug.current  }
-export type LEGAL_PAGE_QUERY_RESULT = {
-  title: string | null;
-  kicker: string | null;
-  body: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "h2" | "normal";
-    listItem?: never;
-    markDefs?: Array<{
-      href?: string;
-      _type: "link";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }> | null;
-  slug: string | null;
-} | null;
+// Variable: PAGE_QUERY
+// Query: *[_type == "page" && slug.current == $slug][0]{    title, "slug": slug.current, seo{title, description},      pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},    _type == "richText" => {content, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}  }  }
+export type PAGE_QUERY_RESULT = {
+  title: string | null
+  slug: string | null
+  seo: {
+    title: string | null
+    description: string | null
+  } | null
+  pageBuilder: Array<
+    | {
+        _key: string
+        _type: 'cta'
+        heading: string | null
+        body: string | null
+        background: 'akzent' | 'normal' | null
+        actions: Array<{
+          _key: string
+          label: string | null
+          href: string | null
+        }> | null
+      }
+    | {
+        _key: string
+        _type: 'gallery'
+        images: Array<{
+          _key: string
+          alt: string | null
+          asset: SanityImageAssetReference | null
+        }> | null
+        columns: '2' | '3' | null
+      }
+    | {
+        _key: string
+        _type: 'hero'
+        heading: string | null
+        statement: string | null
+        body: Array<string> | null
+        image: {
+          alt: string | null
+          asset: SanityImageAssetReference | null
+        } | null
+        imagePosition: 'links' | 'rechts' | null
+        actions: Array<{
+          _key: string
+          label: string | null
+          href: string | null
+        }> | null
+      }
+    | {
+        _key: string
+        _type: 'imageText'
+        image: {
+          alt: string | null
+          asset: SanityImageAssetReference | null
+        } | null
+        heading: string | null
+        body: string | null
+        imagePosition: 'links' | 'rechts' | null
+        background: 'akzent' | 'normal' | 'sand' | null
+        actions: Array<{
+          _key: string
+          label: string | null
+          href: string | null
+        }> | null
+      }
+    | {
+        _key: string
+        _type: 'richText'
+        content: Array<{
+          children?: Array<{
+            marks?: Array<string>
+            text?: string
+            _type: 'span'
+            _key: string
+          }>
+          style?: 'h2' | 'normal'
+          listItem?: 'bullet'
+          markDefs?: Array<{
+            href?: string
+            _type: 'link'
+            _key: string
+          }>
+          level?: number
+          _type: 'block'
+          _key: string
+        }> | null
+        width: 'breit' | 'schmal' | null
+      }
+  > | null
+} | null
 
 // Source: ../site/src/lib/content.ts
-// Variable: LEGAL_PAGE_NAV_QUERY
-// Query: *[_type == "legalPage" && defined(slug.current)] | order(title asc) {    title, "slug": slug.current  }
-export type LEGAL_PAGE_NAV_QUERY_RESULT = Array<{
-  title: string | null;
-  slug: string | null;
-}>;
-
-// Query TypeMap
-import "@sanity/client";
-declare module "@sanity/client" {
-  interface SanityQueries {
-    '\n  *[_id == "siteSettings" && _type == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    backLabel, instagramLabel, notFound{heading, body},\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT;
-    '\n  *[_id == "homePage" && _type == "homePage"][0]{\n    heading, statement, body,\n    charm{alt, asset},\n    actions[]{_key, label, href}\n  }\n': HOME_PAGE_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && defined(slug.current)].slug.current\n': LEGAL_PAGE_SLUGS_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && slug.current == $slug][0]{\n    title, kicker, body, "slug": slug.current\n  }\n': LEGAL_PAGE_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && defined(slug.current)] | order(title asc) {\n    title, "slug": slug.current\n  }\n': LEGAL_PAGE_NAV_QUERY_RESULT;
-  }
-}
+// Variable: NAV_QUERY
+// Query: *[_id == "siteSettings"][0]{    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}  }
+export type NAV_QUERY_RESULT =
+  | {
+      headerLinks: null
+      footerLinks: null
+    }
+  | {
+      headerLinks: Array<{
+        _key: string
+        label: string | null
+        title: string | null
+        slug: string | null
+      }> | null
+      footerLinks: Array<{
+        _key: string
+        label: string | null
+        title: string | null
+        slug: string | null
+      }> | null
+    }
+  | null

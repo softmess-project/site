@@ -1,0 +1,67 @@
+---
+import {srcFor, srcSetFor} from '../../lib/image'
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+import Actions from '../Actions.astro'
+
+interface Props extends BlockOfType<'hero'> {
+  semanticLevel: 'h1' | 'h2'
+}
+
+const {heading, statement, body, image, imagePosition, actions, semanticLevel} = Astro.props
+const Heading = semanticLevel
+const IMAGE_POSITION = {links: 'order-first', rechts: 'order-last'}
+const order = pick(imagePosition ?? undefined, IMAGE_POSITION, 'rechts')
+const WIDTH = 380
+const HEIGHT = Math.round(WIDTH * 1.25) // the mockup's 4:5 charm silhouette
+---
+
+<section
+  class="relative grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-center gap-[clamp(28px,6vw,72px)] px-[clamp(22px,6vw,88px)] pt-[clamp(8px,3vw,48px)] pb-[clamp(32px,6vw,72px)]"
+>
+  <div class="max-w-[620px]">
+    <Heading
+      class="mb-4 font-display text-[length:var(--text-hero)] leading-none font-normal tracking-[0.01em] text-accent"
+    >
+      {heading}
+    </Heading>
+    {
+      statement && (
+        <p class="mb-6 text-[length:var(--text-statement)] leading-[1.2] font-bold tracking-[-0.01em] text-ink">
+          {statement}
+        </p>
+      )
+    }
+    {
+      body?.map((paragraph, index) => (
+        <p
+          class:list={[
+            'max-w-[44ch] text-[18px] leading-[1.6] text-pretty',
+            index === 0 ? 'mb-2 text-ink' : 'mb-8 text-muted',
+          ]}
+        >
+          {paragraph}
+        </p>
+      ))
+    }
+    <Actions actions={actions} />
+  </div>
+
+  {
+    image?.asset && (
+      <figure class:list={['relative m-0 justify-self-center', order]}>
+        <div class="absolute inset-y-[-6%] inset-x-[-8%] rounded-full bg-surface opacity-70"></div>
+        <img
+          class="charm-blob washed animate-drift relative w-[min(380px,74vw)] aspect-[4/5] object-cover shadow-charm"
+          src={srcFor(image, WIDTH, HEIGHT)}
+          srcset={srcSetFor(image, WIDTH, HEIGHT)}
+          width={WIDTH}
+          height={HEIGHT}
+          alt={image.alt ?? ''}
+          loading="eager"
+          decoding="async"
+        />
+      </figure>
+    )
+  }
+</section>

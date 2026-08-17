@@ -1,0 +1,41 @@
+---
+import Cta from './blocks/Cta.astro'
+import Gallery from './blocks/Gallery.astro'
+import Hero from './blocks/Hero.astro'
+import ImageText from './blocks/ImageText.astro'
+import RichText from './blocks/RichText.astro'
+import type {PageBuilderBlock} from '../lib/blocks'
+
+interface Props {
+  blocks?: PageBuilderBlock[] | null
+}
+
+const {blocks} = Astro.props
+---
+
+<main class="relative flex-1">
+  {
+    blocks?.map((block, index) => {
+      // Never store heading levels in content: the first block owns the h1,
+      // everything after it starts at h2.
+      const semanticLevel = index === 0 ? 'h1' : 'h2'
+      // Astro renders statically server-side — there is no client-side list
+      // reconciliation, so no `key` prop is needed (or type-checked: Astro
+      // has no special-cased `key` attribute the way React does).
+      switch (block._type) {
+        case 'hero':
+          return <Hero {...block} semanticLevel={semanticLevel} />
+        case 'richText':
+          return <RichText {...block} semanticLevel={semanticLevel} />
+        case 'imageText':
+          return <ImageText {...block} semanticLevel={semanticLevel} />
+        case 'gallery':
+          return <Gallery {...block} />
+        case 'cta':
+          return <Cta {...block} semanticLevel={semanticLevel} />
+        default:
+          return null
+      }
+    })
+  }
+</main>

@@ -1,0 +1,31 @@
+---
+import {srcFor, srcSetFor} from '../../lib/image'
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+
+type Props = BlockOfType<'gallery'>
+
+const {images, columns} = Astro.props
+const COLUMNS = {'2': 'sm:grid-cols-2', '3': 'sm:grid-cols-3'}
+const grid = pick(columns ?? undefined, COLUMNS, '3')
+---
+
+{
+  images && images.length > 0 && (
+    <section class="relative px-[clamp(22px,6vw,88px)] py-[clamp(24px,4vw,48px)]">
+      <div class:list={['grid grid-cols-1 gap-4', grid]}>
+        {images.map((image) => (
+          <img
+            class="w-full rounded-[20px] object-cover"
+            src={srcFor(image, 480, 480)}
+            srcset={srcSetFor(image, 480, 480)}
+            width="480"
+            height="480"
+            alt={image.alt ?? ''}
+            loading="lazy"
+          />
+        ))}
+      </div>
+    </section>
+  )
+}

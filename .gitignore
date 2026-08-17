@@ -38,3 +38,13 @@ studio/schema.json
 
 # Wrangler
 .wrangler
+
+# Dataset exports taken before a migration — the undo. Kept on disk on
+# purpose; never committed (they are large and contain a full content dump).
+/backup-*.ndjson.gz
+/backup-*.tar.gz
+
+# Local-only Workers runtime vars (astro dev under the cloudflare adapter
+# reads these into the workerd sandbox; process.env from the host doesn't
+# reach it the way it does for the static build).
+.dev.vars

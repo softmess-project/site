@@ -7,7 +7,7 @@ import '@fontsource/outfit/700.css'
 import '../styles/theme.css'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
-import {getLegalPageNav} from '../lib/content'
+import {getNav} from '../lib/content'
 import type {SiteSettings} from '../lib/content'
 
 interface Props {
@@ -18,11 +18,15 @@ interface Props {
 
 const {title, description, settings} = Astro.props
 const metaDescription = description ?? settings.seo?.description ?? ''
-const legalPages = await getLegalPageNav()
+const nav = await getNav(Astro.locals.sanity)
+
+const {VisualEditing} = import.meta.env.PREVIEW
+  ? await import('@sanity/astro/visual-editing')
+  : {VisualEditing: null}
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -47,8 +51,9 @@ const legalPages = await getLegalPageNav()
     >
     </div>
 
-    <Header settings={settings} />
+    <Header settings={settings} links={nav.headerLinks} />
     <slot />
-    <Footer settings={settings} legalPages={legalPages} />
+    <Footer settings={settings} links={nav.footerLinks} />
+    {VisualEditing && <VisualEditing enabled={Astro.locals.draft} />}
   </body>
 </html>

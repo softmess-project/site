@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro'
 import {getSiteSettings} from '../lib/content'
 
-const settings = await getSiteSettings()
+const settings = await getSiteSettings(Astro.locals.sanity)
 ---
 
 <Base title={`${settings.notFound?.heading} · ${settings.brand}`} settings={settings}>

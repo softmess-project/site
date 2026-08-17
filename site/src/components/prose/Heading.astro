@@ -1,6 +1,16 @@
 ---
+import type {Block, Props as BlockProps} from 'astro-portabletext/types'
+
+type Props = BlockProps<Block>
+
+const {node} = Astro.props
+// The schema stores only h2 — heading levels are a render-time decision, never
+// content (see PageBuilder.astro). RichText rewrites the style of the heading
+// that owns the page's h1 on its way here, so both levels arrive as nodes and
+// carry the same look: the difference is semantic, not visual.
+const Tag = node.style === 'h1' ? 'h1' : 'h2'
 ---
 
-<h2 class="mt-6 mb-2 font-sans text-[22px] font-bold text-ink">
+<Tag class="mt-6 mb-2 font-sans text-[22px] font-bold text-ink">
   <slot />
-</h2>
+</Tag>

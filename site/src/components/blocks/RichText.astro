@@ -1,0 +1,30 @@
+---
+import Prose from '../Prose.astro'
+import {pick} from '../../lib/variants'
+import type {BlockOfType} from '../../lib/blocks'
+
+interface Props extends BlockOfType<'richText'> {
+  semanticLevel: 'h1' | 'h2'
+}
+
+const {content, width, semanticLevel} = Astro.props
+const WIDTH = {schmal: 'max-w-[760px]', breit: 'max-w-[1100px]'}
+const maxWidth = pick(width ?? undefined, WIDTH, 'schmal')
+
+// richText has no heading field of its own, so when it is the first block —
+// the one that owns the page's h1 (PageBuilder.astro) — the level has to land
+// on the first heading inside its Portable Text. Without this a page opening
+// with a richText block silently ships no h1 at all, which is what both legal
+// pages did.
+function withLeadHeading(blocks: NonNullable<Props['content']>): unknown[] {
+  const lead = blocks.findIndex((block) => block._type === 'block' && block.style === 'h2')
+  if (lead === -1) return blocks
+  return blocks.map((block, index) => (index === lead ? {...block, style: 'h1'} : block))
+}
+
+const value = semanticLevel === 'h1' && content ? withLeadHeading(content) : content
+---
+
+<section class:list={['relative px-[clamp(24px,6vw,88px)] py-[clamp(24px,4vw,48px)]', maxWidth]}>
+  <Prose value={value} />
+</section>

@@ -1,0 +1,65 @@
+[
+  {
+    "title": "Impressum",
+    "slug": {"current": "impressum"},
+    "seo": {"title": null, "description": null},
+    "pageBuilder": [
+      {
+        "_key": "rt1",
+        "_type": "richText",
+        "width": "schmal",
+        "content": [
+          {
+            "_key": "h1",
+            "_type": "block",
+            "style": "h2",
+            "children": [{"_key": "s1", "_type": "span", "text": "Impressum", "marks": []}],
+            "markDefs": []
+          },
+          {
+            "_key": "p1",
+            "_type": "block",
+            "style": "normal",
+            "children": [
+              {"_key": "s2", "_type": "span", "text": "Email: ", "marks": []},
+              {"_key": "s3", "_type": "span", "text": "hi@softmess.de", "marks": ["m1"]}
+            ],
+            "markDefs": [{"_key": "m1", "_type": "link", "href": "mailto:hi@softmess.de"}]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Datenschutz",
+    "slug": {"current": "datenschutz"},
+    "seo": {"title": null, "description": null},
+    "pageBuilder": [
+      {
+        "_key": "rt1",
+        "_type": "richText",
+        "width": "schmal",
+        "content": [
+          {
+            "_key": "h1",
+            "_type": "block",
+            "style": "h2",
+            "children": [
+              {"_key": "s1", "_type": "span", "text": "Datenschutzerklärung", "marks": []}
+            ],
+            "markDefs": []
+          },
+          {
+            "_key": "p1",
+            "_type": "block",
+            "style": "normal",
+            "children": [
+              {"_key": "s2", "_type": "span", "text": "No cookies are set.", "marks": []}
+            ],
+            "markDefs": []
+          }
+        ]
+      }
+    ]
+  }
+]

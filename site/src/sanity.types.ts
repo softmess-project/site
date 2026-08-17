@@ -150,41 +150,6 @@ export type NavLink = {
   page?: PageReference;
 };
 
-export type LegalPage = {
-  _id: string;
-  _type: "legalPage";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  title?: string;
-  slug?: Slug;
-  kicker?: string;
-  body?: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "normal" | "h2";
-    listItem?: never;
-    markDefs?: Array<{
-      href?: string;
-      _type: "link";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }>;
-};
-
-export type Slug = {
-  _type: "slug";
-  current?: string;
-  source?: string;
-};
-
 export type Page = {
   _id: string;
   _type: "page";
@@ -198,6 +163,12 @@ export type Page = {
     title?: string;
     description?: string;
   };
+};
+
+export type Slug = {
+  _type: "slug";
+  current?: string;
+  source?: string;
 };
 
 export type HomePage = {
@@ -374,9 +345,8 @@ export type AllSanitySchemaTypes =
   | PageBuilder
   | PageReference
   | NavLink
-  | LegalPage
-  | Slug
   | Page
+  | Slug
   | HomePage
   | SanityImageCrop
   | SanityImageHotspot

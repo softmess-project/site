@@ -13,6 +13,15 @@ function doc(page: string) {
   return parseHTML(readFileSync(join(DIST, page), 'utf8')).document
 }
 
+// Catches both the original `[bracketed]` placeholder convention and the
+// literal "TBD" / "TODO" the imprint's address fields carry today — a
+// standalone word, not a substring, so e.g. "Datenschutzerklärung" is safe.
+function findPlaceholders(text: string): string[] {
+  const bracketed = text.match(/\[[a-z][^\]]{2,}\]/g) ?? []
+  const words = text.match(/\b(TBD|TODO)\b/gi) ?? []
+  return [...bracketed, ...words]
+}
+
 beforeAll(() => {
   if (!existsSync(join(DIST, 'index.html'))) {
     throw new Error(`Run a build that outputs to ${DIST} before the dist tests`)
@@ -70,11 +79,23 @@ describe('content pages', () => {
   })
 })
 
+describe('placeholder detection', () => {
+  // Proves the guard below actually fires against what the imprint says
+  // today ("Softmess Project (TBD)", "TBD, § 18 (2) MStV.") — not just
+  // against the old `[bracketed]` convention it was written for.
+  it('flags a standalone TBD, case-insensitively, without flagging real words', () => {
+    expect(findPlaceholders('Softmess Project (TBD)')).toEqual(['TBD'])
+    expect(findPlaceholders('TBD, § 18 (2) MStV.')).toEqual(['TBD'])
+    expect(findPlaceholders('still a todo')).toEqual(['todo'])
+    expect(findPlaceholders('Datenschutzerklärung')).toEqual([])
+  })
+})
+
 describe('promises the site makes in its own privacy policy', () => {
   it('ships no unfilled placeholder text', () => {
     for (const page of PAGES) {
       const text = doc(page).body.textContent ?? ''
-      const placeholders = text.match(/\[[a-z][^\]]{2,}\]/g) ?? []
+      const placeholders = findPlaceholders(text)
       expect(placeholders, `${page} still contains ${placeholders.join(', ')}`).toEqual([])
     }
   })
@@ -107,6 +128,28 @@ describe('promises the site makes in its own privacy policy', () => {
   it('ships no JavaScript', () => {
     for (const page of PAGES) {
       expect(doc(page).querySelectorAll('script'), page).toHaveLength(0)
+    }
+  })
+})
+
+describe('trailing-slash convention', () => {
+  // astro.config.mjs's trailingSlash: 'never', the canonical tag, and what
+  // Cloudflare's asset router actually serves must all agree — otherwise
+  // every page is split across two URLs for search engines (dropTest §4).
+  it('matches the canonical tag against the Workers asset router config', () => {
+    const wrangler = readFileSync(
+      join(import.meta.dirname, '..', 'wrangler.jsonc'),
+      'utf8',
+    )
+    // wrangler.jsonc is JSONC (comments allowed) — strip line comments before parsing.
+    const json = JSON.parse(wrangler.replace(/\/\/.*$/gm, ''))
+    expect(json.assets.html_handling).toBe('drop-trailing-slash')
+  })
+
+  it('emits non-root canonical URLs with no trailing slash', () => {
+    for (const page of ['impressum/index.html', 'datenschutz/index.html']) {
+      const href = doc(page).querySelector('link[rel="canonical"]')?.getAttribute('href')
+      expect(href, page).not.toMatch(/.+\/$/)
     }
   })
 })

@@ -112,5 +112,11 @@ export async function getNav(client: SanityClient): Promise<Nav> {
     const settings = siteSettingsFixture as unknown as Nav
     return {headerLinks: settings.headerLinks ?? [], footerLinks: settings.footerLinks ?? []}
   }
-  return ((await client.fetch(NAV_QUERY)) as Nav) ?? {headerLinks: [], footerLinks: []}
+  const nav = (await client.fetch(NAV_QUERY)) as Nav | null
+  if (!nav) {
+    throw new Error(
+      'Das Dokument "Website-Einstellungen" fehlt in Sanity. Ohne es kann die Navigation nicht gebaut werden.',
+    )
+  }
+  return nav
 }

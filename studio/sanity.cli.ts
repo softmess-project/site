@@ -28,7 +28,13 @@ export default defineCliConfig({
     // relies on that augmentation, so switching it off costs no type safety and
     // makes both writers produce the same file.
     overloadClientMethods: false,
-    path: '../site/src/**/*.{ts,astro}',
+    // TypeScript only. Every query is defined with `defineQuery` in
+    // site/src/lib/content.ts, and .astro files contain none — but the type
+    // extractor's Babel parser rejects Astro's valid top-level frontmatter
+    // `return` ([slug].astro), so scanning them only ever produced a
+    // "Encountered errors in 1 file" warning a maintainer would misread as a
+    // failure. Add .astro back if a query is ever defined in one.
+    path: '../site/src/**/*.ts',
     schema: 'schema.json',
     generates: '../site/src/sanity.types.ts',
   },

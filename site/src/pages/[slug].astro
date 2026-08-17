@@ -1,48 +1,38 @@
 ---
 import Base from '../layouts/Base.astro'
-import Prose from '../components/Prose.astro'
-import {getLegalPage, getLegalPageSlugs, getSiteSettings} from '../lib/content'
-import {publishedClient} from '../lib/sanity'
+import PageBuilder from '../components/PageBuilder.astro'
+import {getPage, getSiteSettings} from '../lib/content'
 
+// Astro hoists getStaticPaths into its own module context, so it imports what
+// it needs itself rather than closing over module-scope bindings.
 export async function getStaticPaths() {
-  // No request context (and so no Astro.locals) exists here — the set of
-  // routes to prerender is a property of published content regardless.
-  const slugs = await getLegalPageSlugs(publishedClient)
+  const {publishedClient} = await import('../lib/sanity')
+  const {getPageSlugs} = await import('../lib/content')
+  const slugs = await getPageSlugs(publishedClient)
   return slugs.map((slug) => ({params: {slug}}))
 }
 
+const client = Astro.locals.sanity
 const {slug} = Astro.params
-const [settings, page] = await Promise.all([
-  getSiteSettings(Astro.locals.sanity),
-  getLegalPage(Astro.locals.sanity, slug!),
-])
+const [settings, page] = await Promise.all([getSiteSettings(client), getPage(client, slug!)])
 
 if (!page) {
-  throw new Error(`No legalPage found for slug "${slug}"`)
+  // In the static build this route is prerendered and getStaticPaths already
+  // enumerated every valid slug, so this branch is unreachable there — and
+  // Astro rejects a Response from a prerendered page. In the preview build
+  // (server-rendered) an unpublished slug can still hit this at request
+  // time, so a real 404 is needed.
+  if (import.meta.env.PREVIEW) {
+    return new Response(null, {status: 404})
+  }
+  throw new Error(`No page found for slug "${slug}"`)
 }
 ---
 
-<Base title={`${page.title} · ${settings.brand}`} settings={settings}>
-  <main
-    class="relative max-w-[760px] flex-1 px-[clamp(24px,6vw,88px)] pt-[clamp(16px,3vw,32px)] pb-[clamp(48px,6vw,80px)]"
-  >
-    <h1
-      class="mb-6 font-display text-[length:var(--text-page-title)] font-normal text-accent"
-    >
-      {page.title}
-    </h1>
-    {
-      page.kicker && (
-        <p class="mb-6 text-[13px] uppercase tracking-[0.12em] text-muted">{page.kicker}</p>
-      )
-    }
-
-    <Prose value={page.body} />
-
-    <a
-      href="/"
-      class="mt-8 inline-flex min-h-[48px] items-center gap-2 rounded-full border border-ink/18 px-[22px] text-[16px] text-ink no-underline hover:bg-ink/7"
-      >{settings.backLabel}</a
-    >
-  </main>
+<Base
+  title={page.seo?.title ?? `${page.title} · ${settings.brand}`}
+  description={page.seo?.description ?? undefined}
+  settings={settings}
+>
+  <PageBuilder blocks={page.pageBuilder} />
 </Base>

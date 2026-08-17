@@ -2,8 +2,10 @@
 import type {SiteSettings} from '../lib/content'
 interface Props {
   settings: SiteSettings
+  links?: Array<{_key: string; label: string | null; title: string | null; slug: string | null}> | null
 }
-const {settings} = Astro.props
+const {settings, links} = Astro.props
+const linkClass = 'text-[15px] text-ink hover:text-accent'
 ---
 
 <header class="relative flex items-center justify-between gap-4 px-[clamp(24px,6vw,88px)] py-6">
@@ -12,5 +14,18 @@ const {settings} = Astro.props
     class="font-display text-[22px] tracking-[0.01em] text-accent no-underline"
     >{settings.brand}</a
   >
-  <span class="text-[13px] uppercase tracking-[0.14em] text-muted">{settings.tagline}</span>
+  <div class="flex items-center gap-4">
+    {
+      links && links.length > 0 && (
+        <nav class="flex flex-wrap gap-x-4 gap-y-1">
+          {links.map((link) => (
+            <a class={linkClass} href={`/${link.slug}`}>
+              {link.label ?? link.title}
+            </a>
+          ))}
+        </nav>
+      )
+    }
+    <span class="text-[13px] uppercase tracking-[0.14em] text-muted">{settings.tagline}</span>
+  </div>
 </header>

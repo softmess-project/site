@@ -1,68 +1,13 @@
 ---
 import Base from '../layouts/Base.astro'
-import CharmImage from '../components/CharmImage.astro'
+import PageBuilder from '../components/PageBuilder.astro'
 import {getHomePage, getSiteSettings} from '../lib/content'
 
-const [settings, home] = await Promise.all([
-  getSiteSettings(Astro.locals.sanity),
-  getHomePage(Astro.locals.sanity),
-])
+const client = Astro.locals.sanity
+const [settings, home] = await Promise.all([getSiteSettings(client), getHomePage(client)])
 const title = settings.seo?.title ?? `${settings.brand} ${settings.tagline ?? ''}`.trim()
-
-const primary =
-  'flex-[1_1_260px] bg-accent text-bg shadow-sm hover:bg-accent-600 active:bg-accent-700'
-const secondary = 'flex-[1_1_200px] border border-ink/18 text-ink hover:bg-ink/7'
 ---
 
 <Base title={title} settings={settings}>
-  <main
-    class="relative grid flex-1 grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] items-center gap-[clamp(28px,6vw,72px)] px-[clamp(22px,6vw,88px)] pt-[clamp(8px,3vw,48px)] pb-[clamp(32px,6vw,72px)]"
-  >
-    <div class="max-w-[620px]">
-      <h1
-        class="mb-4 font-display text-[length:var(--text-hero)] leading-none font-normal tracking-[0.01em] text-accent"
-      >
-        {home.heading}
-      </h1>
-      <p
-        class="mb-6 text-[length:var(--text-statement)] leading-[1.2] font-bold tracking-[-0.01em] text-ink"
-      >
-        {home.statement}
-      </p>
-
-      {
-        home.body?.map((paragraph, index) => (
-          <p
-            class:list={[
-              'max-w-[44ch] text-[18px] leading-[1.6] text-pretty',
-              index === 0 ? 'mb-2 text-ink' : 'mb-8 text-muted',
-            ]}
-          >
-            {paragraph}
-          </p>
-        ))
-      }
-
-      <div class="flex flex-wrap items-center gap-3">
-        {
-          home.actions?.map((action, index) => (
-            <a
-              href={action.href}
-              {...action.href?.startsWith('http')
-                ? {target: '_blank', rel: 'noopener noreferrer'}
-                : {}}
-              class:list={[
-                'inline-flex min-h-[54px] items-center justify-center gap-[10px] rounded-full px-[26px] font-sans text-[17px] no-underline',
-                index === 0 ? primary : secondary,
-              ]}
-            >
-              {action.label}
-            </a>
-          ))
-        }
-      </div>
-    </div>
-
-    {home.charm && <CharmImage charm={home.charm} />}
-  </main>
+  <PageBuilder blocks={home.pageBuilder} />
 </Base>

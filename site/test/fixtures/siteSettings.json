@@ -7,6 +7,11 @@
   "copyright": "© 2026 softmess project",
   "backLabel": "← back",
   "instagramLabel": "instagram",
+  "headerLinks": [],
+  "footerLinks": [
+    {"_key": "impressum", "label": null, "title": "Impressum", "slug": "impressum"},
+    {"_key": "datenschutz", "label": null, "title": "Datenschutz", "slug": "datenschutz"}
+  ],
   "notFound": {
     "heading": "lost",
     "body": "that page isn't here."

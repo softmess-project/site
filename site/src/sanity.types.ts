@@ -628,46 +628,6 @@ export type NAV_QUERY_RESULT =
     }
   | null;
 
-// Source: ../site/src/lib/content.ts
-// Variable: LEGAL_PAGE_SLUGS_QUERY
-// Query: *[_type == "legalPage" && defined(slug.current)].slug.current
-export type LEGAL_PAGE_SLUGS_QUERY_RESULT = Array<string | null>;
-
-// Source: ../site/src/lib/content.ts
-// Variable: LEGAL_PAGE_QUERY
-// Query: *[_type == "legalPage" && slug.current == $slug][0]{    title, kicker, body, "slug": slug.current  }
-export type LEGAL_PAGE_QUERY_RESULT = {
-  title: string | null;
-  kicker: string | null;
-  body: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "h2" | "normal";
-    listItem?: never;
-    markDefs?: Array<{
-      href?: string;
-      _type: "link";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }> | null;
-  slug: string | null;
-} | null;
-
-// Source: ../site/src/lib/content.ts
-// Variable: LEGAL_PAGE_NAV_QUERY
-// Query: *[_type == "legalPage" && defined(slug.current)] | order(title asc) {    title, "slug": slug.current  }
-export type LEGAL_PAGE_NAV_QUERY_RESULT = Array<{
-  title: string | null;
-  slug: string | null;
-}>;
-
 // Query TypeMap
 import "@sanity/client";
 declare module "@sanity/client" {
@@ -677,8 +637,5 @@ declare module "@sanity/client" {
     '\n  *[_type == "page" && defined(slug.current)].slug.current\n': PAGE_SLUGS_QUERY_RESULT;
     '\n  *[_type == "page" && slug.current == $slug][0]{\n    title, "slug": slug.current, seo{title, description},\n    \n  pageBuilder[]{\n    _key, _type,\n    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},\n    _type == "richText" => {content, width},\n    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},\n    _type == "gallery" => {images[]{_key, alt, asset}, columns},\n    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}\n  }\n\n  }\n': PAGE_QUERY_RESULT;
     '\n  *[_id == "siteSettings"][0]{\n    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},\n    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}\n  }\n': NAV_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && defined(slug.current)].slug.current\n': LEGAL_PAGE_SLUGS_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && slug.current == $slug][0]{\n    title, kicker, body, "slug": slug.current\n  }\n': LEGAL_PAGE_QUERY_RESULT;
-    '\n  *[_type == "legalPage" && defined(slug.current)] | order(title asc) {\n    title, "slug": slug.current\n  }\n': LEGAL_PAGE_NAV_QUERY_RESULT;
   }
 }

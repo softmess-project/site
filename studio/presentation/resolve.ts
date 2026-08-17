@@ -8,7 +8,7 @@ export const resolve: PresentationPluginOptions['resolve'] = {
       select: {},
       resolve: () => ({locations: [{title: 'Startseite', href: '/'}]}),
     }),
-    legalPage: defineLocations({
+    page: defineLocations({
       select: {title: 'title', slug: 'slug.current'},
       resolve: (doc) => ({
         locations: [{title: doc?.title || 'Ohne Titel', href: `/${doc?.slug}`}],

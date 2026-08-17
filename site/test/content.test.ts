@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest'
-import {getHomePage, getLegalPage, getLegalPageSlugs, getSiteSettings} from '../src/lib/content'
+import {getHomePage, getPage, getPageSlugs, getSiteSettings} from '../src/lib/content'
 import {publishedClient} from '../src/lib/sanity'
 import {urlFor} from '../src/lib/image'
 
@@ -10,28 +10,27 @@ describe('content layer in fixture mode', () => {
     expect(settings.email).toBe('hi@softmess.de')
   })
 
-  it('returns the home page with two body paragraphs and two actions', async () => {
+  it('returns the home page with a hero block', async () => {
     const home = await getHomePage(publishedClient)
-    expect(home.statement).toBe('follow the white rabbit.')
-    expect(home.body).toHaveLength(2)
-    expect(home.actions).toHaveLength(2)
-    expect(home.actions?.[0].href).toContain('instagram.com')
+    expect(home.pageBuilder).not.toBeNull()
+    const hero = home.pageBuilder?.[0]
+    expect(hero?._type).toBe('hero')
   })
 
-  it('lists legal page slugs', async () => {
-    expect(await getLegalPageSlugs(publishedClient)).toEqual(['imprint', 'privacy'])
+  it('lists page slugs', async () => {
+    expect(await getPageSlugs(publishedClient)).toEqual(['impressum', 'datenschutz'])
   })
 
-  it('finds a legal page by slug and misses cleanly', async () => {
-    expect((await getLegalPage(publishedClient, 'imprint'))?.title).toBe('imprint')
-    expect(await getLegalPage(publishedClient, 'nope')).toBeNull()
+  it('finds a page by slug and misses cleanly', async () => {
+    expect((await getPage(publishedClient, 'impressum'))?.title).toBe('Impressum')
+    expect(await getPage(publishedClient, 'nope')).toBeNull()
   })
 
   it('flattens slug to a string, matching the live query projection', async () => {
-    // LEGAL_PAGE_QUERY projects `"slug": slug.current`, so the live shape is a
+    // PAGE_QUERY projects `"slug": slug.current`, so the live shape is a
     // plain string even though the fixture document stores `slug: {current}`.
-    const page = await getLegalPage(publishedClient, 'imprint')
-    expect(page?.slug).toBe('imprint')
+    const page = await getPage(publishedClient, 'impressum')
+    expect(page?.slug).toBe('impressum')
   })
 
   it('builds a Sanity CDN url from an image ref without network access', () => {

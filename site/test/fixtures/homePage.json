@@ -1,23 +1,100 @@
 {
-  "heading": "softmess",
-  "statement": "follow the white rabbit.",
-  "body": [
-    "things I made because I wanted to see if I could — charms of paracord and resin clay, squeezed into shapes that refuse to sit still.",
-    "obviously handmade & made once probably. based in 353."
-  ],
-  "charm": {
-    "alt": "A handmade resin-clay charm on a paracord cord",
-    "asset": {
-      "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
-      "_type": "reference"
-    }
-  },
-  "actions": [
+  "pageBuilder": [
     {
-      "_key": "instagram",
-      "label": "it all happens on instagram",
-      "href": "https://www.instagram.com/softmess.project/"
+      "_key": "hero1",
+      "_type": "hero",
+      "heading": "softmess",
+      "statement": "follow the white rabbit.",
+      "body": [
+        "things I made because I wanted to see if I could — charms of paracord and resin clay, squeezed into shapes that refuse to sit still.",
+        "obviously handmade & made once probably. based in 353."
+      ],
+      "image": {
+        "alt": "A handmade resin-clay charm on a paracord cord",
+        "asset": {
+          "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
+          "_type": "reference"
+        }
+      },
+      "imagePosition": "rechts",
+      "actions": [
+        {
+          "_key": "instagram",
+          "label": "it all happens on instagram",
+          "href": "https://www.instagram.com/softmess.project/"
+        },
+        {"_key": "email", "label": "hi@softmess.de", "href": "mailto:hi@softmess.de"}
+      ]
     },
-    {"_key": "email", "label": "hi@softmess.de", "href": "mailto:hi@softmess.de"}
+    {
+      "_key": "richText1",
+      "_type": "richText",
+      "width": "schmal",
+      "content": [
+        {
+          "_key": "h1",
+          "_type": "block",
+          "style": "h2",
+          "children": [{"_key": "s1", "_type": "span", "text": "About the mess", "marks": []}],
+          "markDefs": []
+        },
+        {
+          "_key": "p1",
+          "_type": "block",
+          "style": "normal",
+          "children": [
+            {"_key": "s2", "_type": "span", "text": "Every charm is one of a kind.", "marks": []}
+          ],
+          "markDefs": []
+        }
+      ]
+    },
+    {
+      "_key": "imageText1",
+      "_type": "imageText",
+      "heading": "made by hand",
+      "body": "Resin clay, cured slowly, never quite the same twice.",
+      "imagePosition": "links",
+      "background": "sand",
+      "image": {
+        "alt": "Charms drying on a workbench",
+        "asset": {
+          "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
+          "_type": "reference"
+        }
+      },
+      "actions": [{"_key": "shop", "label": "shop the drop", "href": "https://www.instagram.com/softmess.project/"}]
+    },
+    {
+      "_key": "gallery1",
+      "_type": "gallery",
+      "columns": "3",
+      "images": [
+        {
+          "_key": "img1",
+          "alt": "Charm one",
+          "asset": {
+            "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
+            "_type": "reference"
+          }
+        },
+        {
+          "_key": "img2",
+          "alt": "Charm two",
+          "asset": {
+            "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
+            "_type": "reference"
+          }
+        }
+      ]
+    },
+    {
+      "_key": "cta1",
+      "_type": "cta",
+      "heading": "say hi",
+      "body": "Questions, commissions, or just to say the charm arrived safely.",
+      "background": "akzent",
+      "actions": [{"_key": "email", "label": "hi@softmess.de", "href": "mailto:hi@softmess.de"}]
+    }
   ]
 }

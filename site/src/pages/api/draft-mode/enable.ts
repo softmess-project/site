@@ -1,6 +1,6 @@
 import type {APIRoute} from 'astro'
 import {validatePreviewUrl} from '@sanity/preview-url-secret'
-import {publishedClient} from '../../../lib/sanity'
+import {previewSecretClient} from '../../../lib/sanity'
 import {DRAFT_COOKIE} from '../../../lib/draft'
 
 // The static public build has no adapter (see astro.config.mjs), so an
@@ -12,7 +12,7 @@ export const prerender = !import.meta.env.PREVIEW
 export const GET: APIRoute = async ({request, cookies, redirect}) => {
   if (!import.meta.env.PREVIEW) return new Response('Not found', {status: 404})
 
-  const {isValid, redirectTo = '/'} = await validatePreviewUrl(publishedClient, request.url)
+  const {isValid, redirectTo = '/'} = await validatePreviewUrl(previewSecretClient, request.url)
 
   if (!isValid) {
     return new Response('Ungültiges oder abgelaufenes Vorschau-Secret', {status: 401})

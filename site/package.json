@@ -39,5 +39,12 @@
     "vite": "^8.2.1",
     "vitest": "^4.1.10",
     "wrangler": "^4.123.0"
+  },
+  "//prettier": "Same values studio/package.json declares. 6f8c0b0 moved this block out of the repo root into studio/ only, which left site/ with no config: every formatter run here — an editor on save, and sanity-typegen's own prettier pass over sanity.types.ts — silently applied prettier's defaults instead, reformatting files against the project's style and making `pnpm verify`'s generated-types diff check fail.",
+  "prettier": {
+    "bracketSpacing": false,
+    "printWidth": 100,
+    "semi": false,
+    "singleQuote": true
   }
 }

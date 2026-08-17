@@ -29,5 +29,20 @@ export function draftClient(): SanityClient {
   })
 }
 
+/** Reads the preview-URL secret during the draft-mode handshake.
+ *
+ *  Sanity stores that secret as a DRAFT system document (`drafts.<uuid>` of
+ *  type `sanity.previewUrlSecret`), so a `published`-perspective client cannot
+ *  see it at all and every handshake fails as "invalid secret" no matter how
+ *  fresh the secret is. Verified against the API with one admin token: the same
+ *  query returns 0 documents under `published` and 20 under `raw`.
+ *
+ *  The token must also be allowed to read drafts; a deploy-only token reads
+ *  nothing here. Preview only — never used by the static build. */
+export const previewSecretClient: SanityClient = createClient({
+  ...base,
+  perspective: 'raw',
+})
+
 /** @deprecated Kept so `content.ts` callers migrate in one place. */
 export const client = publishedClient

@@ -74,10 +74,13 @@ describe('home page', () => {
     expect(text).toContain('refuse to sit still')
   })
 
-  it('renders the hero image as a responsive Sanity CDN image', () => {
+  it('renders the hero image as a responsive same-origin proxied image', () => {
     const img = doc('index.html').querySelector('main img')
     expect(img).not.toBeNull()
-    expect(img!.getAttribute('src')).toContain('cdn.sanity.io')
+    // Same-origin `/cdn/...`, not `cdn.sanity.io` — src/worker.ts proxies it so
+    // no visitor IP reaches Sanity. The path still carries Sanity's own
+    // project/dataset/asset layout, which is what the Worker pins against.
+    expect(img!.getAttribute('src')).toMatch(/^\/cdn\/images\/85i3osnk\/production\//)
     expect(img!.getAttribute('srcset')).toContain('2x')
     expect(img!.getAttribute('alt')?.length).toBeGreaterThan(0)
   })
@@ -132,7 +135,10 @@ describe('promises the site makes in its own privacy policy', () => {
   })
 
   it('loads no third-party subresource', () => {
-    const allowed = /^(\/|\.|data:|#)|cdn\.sanity\.io/
+    // Relative and same-origin only. `cdn.sanity.io` used to be allowed here
+    // and is now deliberately not: src/worker.ts proxies Sanity's images
+    // through /cdn/*, so the built HTML must name no external host at all.
+    const allowed = /^(\/|\.|data:|#)/
     for (const page of PAGES) {
       const d = doc(page)
       const refs = [

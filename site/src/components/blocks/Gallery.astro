@@ -1,5 +1,5 @@
 ---
-import {srcSetFor, urlFor} from '../../lib/image'
+import {srcFor, srcSetFor} from '../../lib/image'
 import {pick} from '../../lib/variants'
 import type {BlockOfType} from '../../lib/blocks'
 
@@ -17,7 +17,7 @@ const grid = pick(columns ?? undefined, COLUMNS, '3')
         {images.map((image) => (
           <img
             class="w-full rounded-[20px] object-cover"
-            src={urlFor(image).width(480).height(480).format('webp').quality(80).url()}
+            src={srcFor(image, 480, 480)}
             srcset={srcSetFor(image, 480, 480)}
             width="480"
             height="480"

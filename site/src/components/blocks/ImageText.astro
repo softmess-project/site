@@ -1,5 +1,5 @@
 ---
-import {srcSetFor, urlFor} from '../../lib/image'
+import {srcFor, srcSetFor} from '../../lib/image'
 import {pick} from '../../lib/variants'
 import type {BlockOfType} from '../../lib/blocks'
 import Actions from '../Actions.astro'
@@ -26,7 +26,7 @@ const bg = pick(background ?? undefined, BACKGROUND, 'normal')
     image?.asset && (
       <img
         class:list={['w-full rounded-[28px] object-cover', order]}
-        src={urlFor(image).width(560).height(560).format('webp').quality(80).url()}
+        src={srcFor(image, 560, 560)}
         srcset={srcSetFor(image, 560, 560)}
         width="560"
         height="560"

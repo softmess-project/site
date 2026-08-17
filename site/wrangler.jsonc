@@ -1,15 +1,28 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "softmess",
+  "main": "./src/worker.ts",
   "compatibility_date": "2026-08-15",
+  "vars": {
+    // Not secrets — the same two values are in the committed .env. The Worker
+    // needs them at request time to pin the proxy to this project's assets.
+    "SANITY_PROJECT_ID": "85i3osnk",
+    "SANITY_DATASET": "production"
+  },
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     "not_found_handling": "404-page",
     // astro.config.mjs sets trailingSlash: 'never' and the canonical tag
     // emits URLs with no trailing slash — drop-trailing-slash is what makes
     // the asset router actually serve those URLs instead of 307-redirecting
     // to add one back.
-    "html_handling": "drop-trailing-slash"
+    "html_handling": "drop-trailing-slash",
+    // Everything except /cdn/* is served from assets without invoking the
+    // Worker at all, which is what keeps the public site a static deployment.
+    // Naming the prefix explicitly rather than relying on "no asset matched"
+    // also means not_found_handling can never swallow a proxy request.
+    "run_worker_first": ["/cdn/*"]
   },
   "routes": [
     {"pattern": "softmess.de", "custom_domain": true},

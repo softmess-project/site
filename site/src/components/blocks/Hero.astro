@@ -1,5 +1,5 @@
 ---
-import {srcSetFor, urlFor} from '../../lib/image'
+import {srcFor, srcSetFor} from '../../lib/image'
 import {pick} from '../../lib/variants'
 import type {BlockOfType} from '../../lib/blocks'
 import Actions from '../Actions.astro'
@@ -53,7 +53,7 @@ const HEIGHT = Math.round(WIDTH * 1.25) // the mockup's 4:5 charm silhouette
         <div class="absolute inset-y-[-6%] inset-x-[-8%] rounded-full bg-surface opacity-70"></div>
         <img
           class="charm-blob washed animate-drift relative w-[min(380px,74vw)] aspect-[4/5] object-cover shadow-charm"
-          src={urlFor(image).width(WIDTH).height(HEIGHT).format('webp').quality(80).url()}
+          src={srcFor(image, WIDTH, HEIGHT)}
           srcset={srcSetFor(image, WIDTH, HEIGHT)}
           width={WIDTH}
           height={HEIGHT}

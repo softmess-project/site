@@ -100,11 +100,28 @@ Fold these into the usability session — they're the same sitting.
 Everything here was left manual on purpose: prove the workflow by hand first, then automate the
 proven workflow.
 
-### 3.1 A write-scoped Sanity token — **do this first, it blocks the rest**
+### 3.1 A draft-readable Sanity token — **this is the last thing blocking local preview**
 
-`SANITY_API_TOKEN` is scoped **"Deploy Studio"** — create + read, no update. `migrate.ts` could not
-apply with it; the migration ran via `sanity exec --with-user-token` instead. Any automated content
-operation needs a proper Editor-role `SANITY_WRITE_TOKEN`.
+The token in `site/.dev.vars` is still the **"Deploy Studio"** one: create + read, no update, and —
+the part that matters for preview — **it cannot read draft documents**. Sanity keeps the preview-URL
+secret in a *draft* system document, so with this token the handshake fails as "invalid or expired
+secret" even though the code is now correct. Measured: `count(*[_type == "sanity.previewUrlSecret"])`
+at `perspective=raw` returns **20** for an admin token and **0** for this one.
+
+You have already created Editor and Developer robot tokens on the project. Put one of them in:
+
+1. `site/.dev.vars` → `SANITY_API_TOKEN` (local preview), then restart `pnpm dev`.
+2. the preview Worker's secrets → `cd site && npx wrangler secret put SANITY_API_TOKEN --config wrangler.preview.jsonc`.
+
+Proven to work end to end once a draft-readable token is in place: enable 307s, sets
+`sanity-draft-mode=1`, and the page renders with 15440 stega markers with the cookie and 0 without.
+
+Separately, `.env.local`'s `SANITY_API_TOKEN` is currently commented out, so builds read published
+content anonymously. That works today because the dataset is publicly readable — worth knowing rather
+than rediscovering.
+
+`migrate.ts` also could not apply with the deploy token; that migration ran via
+`sanity exec --with-user-token`.
 
 ### 3.2 Publishing automation
 
@@ -127,11 +144,27 @@ live in the offline `pnpm verify`.
 
 Ordered by how likely they are to bite you.
 
-### 4.1 Adding a third call-to-action will fail the deploy build
+### 4.1 preview.softmess.de returns 500 — the deployed preview Worker is down
 
-`site/test/dist.test.ts` → `renders one button per action` asserts **exactly two** action buttons and
-that the second is `mailto:hi@softmess.de`. Add a third CTA in the Studio and `build:site:deploy`
-fails on real content. It should assert "at least one, first one filled" instead.
+Every page 500s. The cause is an intermittent **HTTP 525 (SSL handshake failed)** on the Worker's
+subrequests to `api.sanity.io`; any one failure throws and kills the render, so it looks total. Which
+query fails moves between runs.
+
+What is ruled out, each tested from the Cloudflare edge: the network (all Sanity hosts 200), the URL
+(the exact failing URL 200s via plain `fetch`), `@sanity/client` itself (200, both CDN modes),
+concurrency (30 concurrent long queries, 0 failures), and the token. The app's own requests carry
+nothing unusual — GET, one `authorization` header. Unexplained; needs a Cloudflare support thread with
+the ray IDs, or a retry-on-5xx wrapper as a pragmatic workaround.
+
+Consequence for the Studio: `SANITY_STUDIO_PREVIEW_ORIGIN` defaults to `http://localhost:4321`, so the
+deployed HTTPS Studio at `studio.softmess.de` tries to iframe an **http** origin and the browser blocks
+it as mixed content — which is the "CSP" failure seen there. Point it at `https://preview.softmess.de`
+only once the 500 is fixed; until then, local Presentation is the working path.
+
+### 4.2 Adding a third call-to-action no longer fails the build
+
+Fixed. That assertion, and every other one that pinned specific copy, counts or nav labels, is now
+fixture-only — see the appendix for what the deploy build still enforces.
 
 ### 4.2 `migrate.ts` never deletes the old `legalPage` documents
 

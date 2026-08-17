@@ -18,13 +18,21 @@ export const GET: APIRoute = async ({request, cookies, redirect}) => {
     return new Response('Ungültiges oder abgelaufenes Vorschau-Secret', {status: 401})
   }
 
+  // The preview renders inside an iframe on the Studio's origin, so the cookie
+  // has to survive being set in a framed context. SameSite=None is what allows
+  // that, but the spec requires Secure alongside it — and Safari drops a Secure
+  // cookie over plain http, localhost included, so hard-coding both silently
+  // broke local preview there: the redirect happened and the cookie vanished.
+  // Over http we therefore fall back to Lax, which is sufficient because Studio
+  // and preview are same-site in both real setups (localhost differs only by
+  // port, and preview/studio.softmess.de share a registrable domain).
+  const secure = new URL(request.url).protocol === 'https:'
+
   cookies.set(DRAFT_COOKIE, '1', {
     path: '/',
     httpOnly: true,
-    // The preview renders inside an iframe on the Studio's origin. A Lax cookie
-    // is not sent in that cross-site context and the handshake fails silently.
-    sameSite: 'none',
-    secure: true,
+    sameSite: secure ? 'none' : 'lax',
+    secure,
   })
 
   return redirect(redirectTo, 307)

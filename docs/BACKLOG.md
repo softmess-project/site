@@ -1,6 +1,6 @@
 # Backlog — softmess.de
 
-State after the backlog-clearing pass on `feat/page-builder` (through `34e52c3`).
+State after the backlog-clearing pass on `feat/page-builder`.
 
 `pnpm verify` is green: 18 studio tests, 43 site tests, 8 skipped (the live gate).
 `pnpm build:site:deploy` **passes** — the real-content gate no longer blocks.
@@ -59,20 +59,34 @@ in the API call, **including `fetch()` requests made by Workers on your zone**"
 With ML-KEM the ClientHello splits across two packets, and origins or middleboxes
 that mishandle that answer 525 — which fits the host-dependent pattern exactly.
 
-**But the obvious lever is already in the safe position:** `origin_pqe` is
-`supported`, not `preferred`, so Cloudflare should not be sending a PQ keyshare
-unprompted. Zone `pq_keyex` is `on`, `ssl` is `full`, there are no Worker routes
-on the zone, and `orange_to_orange` is `off`.
+**That hypothesis has now been tested and eliminated.** `origin_pqe` was set to
+`off`, the matrix re-run, and the result was byte-for-byte identical — same four
+hosts at 525, pages still 500. It has been **reverted to `supported`**, its
+original value. Post-quantum key agreement is not the cause.
 
-Two things to try, in order:
+(Method note, since the docs disagree with the API: `PUT` works on
+`/zones/{zone}/cache/origin_post_quantum_encryption`; `PATCH` is rejected with
+`10405 Method not allowed for this authentication scheme`, which reads like a
+permissions error and is not one.)
 
-1. **Flip `origin_pqe` to `off`** and re-measure. One reversible API call:
-   `PATCH /zones/7ace224ab1450f917eeeb48863ae630f/cache/origin_post_quantum_encryption`
-   with `{"value":"off"}`. Cheap, and it either fixes it or eliminates the
-   leading hypothesis. Not done here because it changes TLS posture on the
-   production zone.
-2. **Open a Cloudflare ticket** with the table above and a `cf-ray` from a failing
-   request. The workers.dev-versus-custom-domain comparison is the whole ticket.
+Other zone state, all checked and none of it suspicious: `pq_keyex` `on`, `ssl`
+`full`, `min_tls_version` 1.0, `orange_to_orange` `off`, **no Worker routes on the
+zone at all**, and `placement: {}` on both Workers.
+
+**Remaining path: a Cloudflare support ticket.** The whole ticket is the table
+above plus the fact that the same script on `workers.dev` works. Failing ray IDs,
+all FRA, captured after the `origin_pqe` revert:
+
+```
+a2c996919d09c0d5-FRA
+a2c99693fd13dcce-FRA
+a2c99695caf33d4d-FRA
+```
+
+Note for whoever writes it: `github.com` failing alongside the Sanity hosts is the
+detail that makes this obviously not a Sanity problem, and `example.com` /
+`cloudflare.com` / `www.sanity.io` succeeding from the same Worker in the same
+request rules out a blanket egress block.
 
 To reproduce at any time: `curl https://preview.softmess.de/api/diag` (temporary
 route, `site/src/pages/api/diag.ts`, delete with this item).
@@ -93,24 +107,33 @@ Currently deployed to `softmess.de` is the older assets-only build
 (`has_modules: false`), which still points at `cdn.sanity.io` directly and is
 therefore fine.
 
-### 1.3 Publishing automation — pick a mechanism
+### 1.3 Publishing automation — settled on Cloudflare Workers Builds
 
-There are now two, and only one should exist.
+Resolved. **Cloudflare Workers Builds is the mechanism**, and the GitHub route was
+not built out, so only one thing deploys on publish.
 
-- **Already live:** a Sanity webhook named `Cloudflare` (id `LRnvr01wjiGvxTgh`)
-  posting to a **Cloudflare Workers Builds** deploy hook. Fires on
-  create/delete/update, `includeDrafts: false`, `dataset: "*"`, **no type
-  filter** — so it also fires for documents that cannot affect the public site.
-- **Added this pass:** `.github/workflows/deploy.yml`, whose `deploy-site` job
-  accepts `repository_dispatch: [sanity-publish]`. Nothing fires it yet — no
-  second webhook was created, deliberately, because two mechanisms racing to
-  deploy the same Worker is worse than either alone.
+The live Sanity webhook `Cloudflare` (id `LRnvr01wjiGvxTgh`, pointing at a Workers
+Builds deploy hook) now carries the type filter the old backlog asked for:
 
-Whichever you keep, add the type filter the old backlog asked for:
-`_type in ["homePage", "page", "siteSettings"]`.
+```groq
+_type in ["homePage", "page", "siteSettings"]
+```
 
-Note: `repository_dispatch` only triggers workflows on the **default branch**, so
-the GitHub route cannot work until `deploy.yml` is on `main`.
+Set as `rule.filter`, not the top-level `filter` field — that one expects an
+object in this API version and rejects a GROQ string. Verified against the
+dataset: it matches the two `page` documents, `homePage` and `siteSettings`, and
+skips `sanity.imageAsset`, `system.group` and `system.retention`, all of which
+used to trigger a build for nothing. `includeDrafts: false` was already correct.
+
+`.github/workflows/deploy.yml` therefore serves **manual** deploys —
+`workflow_dispatch` with a target of all/site/preview/studio. Its `deploy-site`
+job also accepts `repository_dispatch: [sanity-publish]`, which nothing fires; it
+is left in place as the escape hatch if Workers Builds is ever dropped. Note that
+`repository_dispatch` only triggers workflows on the **default branch**, so that
+path needs `deploy.yml` on `main` before it could work at all.
+
+Still worth a thought, not done: the hook's `dataset` is `"*"`. With one dataset
+that is harmless, but a future staging dataset would trigger production deploys.
 
 ### 1.4 The imprint address, and a DPA with Sanity
 

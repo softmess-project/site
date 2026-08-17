@@ -56,11 +56,26 @@ async function main() {
   //    no home on any block, and dropping it silently would lose
   //    "Angaben gemäß § 5 DDG" — so it is prepended to the body as a paragraph.
   const legal = await client.fetch<any[]>('*[_type == "legalPage"]')
-  const pageIds: Record<string, string> = {}
+
+  // Seeds pageIds with any page that already exists for these slugs — both so
+  // a re-run against a dataset with no legalPage docs left (the normal case,
+  // once migrated) still knows the nav targets, and so a partial re-run that
+  // still has legalPage docs doesn't create a second page with the same slug.
+  const existingPages = await client.fetch<Array<{_id: string; slug: string}>>(
+    '*[_type == "page" && slug.current in $slugs]{_id, "slug": slug.current}',
+    {slugs: Object.values(SLUGS)},
+  )
+  const pageIds: Record<string, string> = Object.fromEntries(
+    existingPages.map((p) => [p.slug, p._id]),
+  )
 
   for (const doc of legal) {
     const oldSlug = doc.slug?.current as string
     const newSlug = SLUGS[oldSlug] ?? oldSlug
+    if (pageIds[newSlug]) {
+      console.log(`page "${newSlug}" already exists, skipping creation`)
+      continue
+    }
     const id = crypto.randomUUID()
     pageIds[newSlug] = id
 
@@ -94,21 +109,28 @@ async function main() {
     })
   }
 
-  // 3. The nav LEGAL_PAGE_NAV_QUERY used to derive becomes explicit.
-  mutations.push({
-    patch: {
-      id: 'siteSettings',
-      set: {
-        footerLinks: ['impressum', 'datenschutz']
-          .filter((slug) => pageIds[slug])
-          .map((slug) => ({
-            _key: key(),
-            _type: 'navLink',
-            page: {_type: 'reference', _ref: pageIds[slug]},
-          })),
+  // 3. The nav LEGAL_PAGE_NAV_QUERY used to derive becomes explicit. Only
+  //    touch it when there is something real to point it at — once the
+  //    legalPage docs are gone (the normal post-migration state), an empty
+  //    pageIds here must never overwrite a live footerLinks with [].
+  if (Object.keys(pageIds).length > 0) {
+    mutations.push({
+      patch: {
+        id: 'siteSettings',
+        set: {
+          footerLinks: ['impressum', 'datenschutz']
+            .filter((slug) => pageIds[slug])
+            .map((slug) => ({
+              _key: key(),
+              _type: 'navLink',
+              page: {_type: 'reference', _ref: pageIds[slug]},
+            })),
+        },
       },
-    },
-  })
+    })
+  } else {
+    console.log('no page documents found — leaving footerLinks untouched')
+  }
 
   console.log(JSON.stringify(mutations, null, 2))
 

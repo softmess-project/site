@@ -10,7 +10,7 @@ const LEGAL_SLUGS = ['impressum', 'datenschutz']
 
 export const structure: StructureResolver = (S) =>
   S.list()
-    .title('Content')
+    .title('Inhalt')
     .items([
       S.listItem()
         .title('Website-Einstellungen')

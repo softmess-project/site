@@ -6,7 +6,9 @@ const client = createClient({
   dataset: process.env.SANITY_DATASET!,
   apiVersion: '2026-08-15',
   useCdn: false,
-  token: process.env.SANITY_WRITE_TOKEN,
+  // Same env var migrate.ts reads — this package had drifted between the two
+  // names; SANITY_API_TOKEN is the one actually set in .env.local.
+  token: process.env.SANITY_API_TOKEN,
 })
 
 // Default is safe: fill an empty dataset without touching existing content.
@@ -27,7 +29,9 @@ const block = (text: string, style: 'normal' | 'h2' = 'normal', key: string) => 
   children: [{_key: `${key}s`, _type: 'span', text, marks: []}],
 })
 
-const emailBlock = (prefix: string, key: string) => ({
+// suffix lets the email sit mid-sentence (e.g. "...an hi@softmess.de,
+// verwenden wir...") rather than only as a trailing "label: address" line.
+const emailBlock = (prefix: string, suffix: string, key: string) => ({
   _key: key,
   _type: 'block',
   style: 'normal',
@@ -35,6 +39,7 @@ const emailBlock = (prefix: string, key: string) => ({
   children: [
     {_key: `${key}a`, _type: 'span', text: prefix, marks: []},
     {_key: `${key}b`, _type: 'span', text: 'hi@softmess.de', marks: [`${key}m`]},
+    ...(suffix ? [{_key: `${key}c`, _type: 'span', text: suffix, marks: []}] : []),
   ],
 })
 
@@ -62,95 +67,58 @@ async function upsertSingleton(doc: Record<string, unknown> & {_id: string}) {
   console.log(`created ${doc._id}`)
 }
 
-// legalPage documents get generated _ids, so identity is tracked by slug
-// instead. Default mode skips a slug that already exists; SEED_REPLACE=1
-// overwrites it in place, reusing the existing _id so any reference survives.
-async function upsertLegalPage(doc: Record<string, unknown> & {slug: {current: string}}) {
-  const slug = doc.slug.current
+// page documents get generated _ids, so identity is tracked by slug instead.
+// Default mode skips a slug that already exists; SEED_REPLACE=1 overwrites it
+// in place, reusing the existing _id so any reference (e.g. footerLinks)
+// survives. Returns the _id either way, so callers can wire up navigation.
+async function upsertPage(doc: {title: string; slug: string; content: unknown[]}) {
   const existingId = (await client.fetch(
-    `*[_type == "legalPage" && slug.current == $slug][0]._id`,
-    {slug},
+    `*[_type == "page" && slug.current == $slug][0]._id`,
+    {slug: doc.slug},
   )) as string | null
+
+  const pageDoc = {
+    _type: 'page',
+    title: doc.title,
+    slug: {_type: 'slug', current: doc.slug},
+    pageBuilder: [{_key: 'rt1', _type: 'richText', width: 'schmal', content: doc.content}],
+  }
 
   if (REPLACE) {
     if (existingId) {
-      await client.createOrReplace({...doc, _id: existingId})
-      console.log(`replaced legalPage/${slug} (${existingId})`)
-    } else {
-      const created = await client.create(doc)
-      console.log(`created legalPage/${slug} (${created._id})`)
+      await client.createOrReplace({...pageDoc, _id: existingId})
+      console.log(`replaced page/${doc.slug} (${existingId})`)
+      return existingId
     }
-    return
+    const created = await client.create(pageDoc)
+    console.log(`created page/${doc.slug} (${created._id})`)
+    return created._id
   }
 
   if (existingId) {
-    console.log(`skipped legalPage/${slug} — already exists (${existingId})`)
-    return
+    console.log(`skipped page/${doc.slug} — already exists (${existingId})`)
+    return existingId
   }
 
-  const created = await client.create(doc)
-  console.log(`created legalPage/${slug} (${created._id})`)
+  const created = await client.create(pageDoc)
+  console.log(`created page/${doc.slug} (${created._id})`)
+  return created._id
 }
 
 async function main() {
   const redId = await uploadCharm('images/charm-red.jpg', 'charm-red')
   await uploadCharm('images/charm-green.jpg', 'charm-green')
 
-  await upsertSingleton({
-    _id: 'siteSettings',
-    _type: 'siteSettings',
-    brand: 'softmess',
-    tagline: 'project',
-    email: 'hi@softmess.de',
-    instagram: 'https://www.instagram.com/softmess.project/',
-    instagramHandle: '@softmess.project',
-    copyright: '© 2026 softmess project',
-    // Added by Task 12 — these were hardcoded in the templates until then.
-    backLabel: '← zurück',
-    instagramLabel: 'instagram',
-    notFound: {heading: 'verirrt', body: "diese seite gibt's hier nicht."},
-    seo: {
-      title: 'softmess project',
-      description:
-        'handgemachte anhänger aus paracord und resin clay, gepresst in formen, die einfach nicht stillhalten wollen.',
-    },
-  })
-
-  await upsertSingleton({
-    _id: 'homePage',
-    _type: 'homePage',
-    heading: 'softmess',
-    statement: 'folg dem weißen kaninchen.',
-    body: [
-      "dinge, die ich gemacht habe, weil ich wissen wollte, ob ich's kann — anhänger aus paracord und resin clay, gepresst in formen, die einfach nicht stillhalten wollen.",
-      'ganz klar handgemacht & wahrscheinlich nur einmal gemacht. zuhause in 353.',
-    ],
-    charm: {
-      _type: 'image',
-      alt: 'A handmade resin-clay charm on a paracord cord',
-      asset: {_type: 'reference', _ref: redId},
-    },
-    actions: [
-      {
-        _key: 'instagram',
-        _type: 'action',
-        label: 'alles passiert auf instagram',
-        href: 'https://www.instagram.com/softmess.project/',
-      },
-      {_key: 'email', _type: 'action', label: 'hi@softmess.de', href: 'mailto:hi@softmess.de'},
-    ],
-  })
-
-  await upsertLegalPage({
-    _type: 'legalPage',
+  // Pages are created before siteSettings so their _ids exist for footerLinks.
+  const impressumId = await upsertPage({
     title: 'Impressum',
-    slug: {_type: 'slug', current: 'imprint'},
-    kicker: 'Angaben gemäß § 5 DDG',
-    body: [
+    slug: 'impressum',
+    content: [
+      block('Angaben gemäß § 5 DDG', 'normal', 'k1'),
       block('Verantwortlich für diese Website', 'h2', 'a1'),
       block(`Dorina Mazetti, softmess project, ${STREET}, ${CITY}, Germany`, 'normal', 'a2'),
       block('Kontakt', 'h2', 'b1'),
-      emailBlock('E-Mail: ', 'b2'),
+      emailBlock('E-Mail: ', '', 'b2'),
       block('Verantwortlich für den redaktionellen Inhalt', 'h2', 'c1'),
       block('Dorina Mazetti (Anschrift wie oben), § 18 (2) MStV.', 'normal', 'c2'),
       block('Umsatzsteuer', 'h2', 'd1'),
@@ -185,12 +153,11 @@ async function main() {
     ],
   })
 
-  await upsertLegalPage({
-    _type: 'legalPage',
+  const datenschutzId = await upsertPage({
     title: 'Datenschutz',
-    slug: {_type: 'slug', current: 'privacy'},
-    kicker: 'Datenschutzerklärung · DSGVO',
-    body: [
+    slug: 'datenschutz',
+    content: [
+      block('Datenschutzerklärung · DSGVO', 'normal', 'k1'),
       block(
         'Dies ist eine kleine, schlichte Website. Es gibt keine Konten, keinen Shop, keine Cookies, keine Analyse- und keine Werbetools. Verarbeitet wird nur, was dein Browser ohnehin senden muss, um die Seite zu laden.',
         'normal',
@@ -217,7 +184,11 @@ async function main() {
         'p8',
       ),
       block('Kontakt per E-Mail', 'h2', 'p9'),
-      emailBlock('Schreibst du uns an ', 'p10'),
+      block(
+        'Schreibst du uns eine E-Mail an hi@softmess.de, verwenden wir deine Nachricht und deine Absenderadresse ausschließlich, um deine Anfrage zu beantworten, und geben sie nicht an Dritte weiter.',
+        'normal',
+        'p10',
+      ),
       block('Deine Rechte', 'h2', 'p11'),
       block(
         'Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch (Art. 15–21 DSGVO). Beruht eine Verarbeitung auf einer Einwilligung, kannst du diese jederzeit widerrufen.',
@@ -235,6 +206,55 @@ async function main() {
         'normal',
         'p15',
       ),
+    ],
+  })
+
+  await upsertSingleton({
+    _id: 'siteSettings',
+    _type: 'siteSettings',
+    brand: 'softmess',
+    tagline: 'project',
+    email: 'hi@softmess.de',
+    instagram: 'https://www.instagram.com/softmess.project/',
+    instagramHandle: '@softmess.project',
+    copyright: '© 2026 softmess project',
+    // Added by Task 12 — these were hardcoded in the templates until then.
+    backLabel: '← zurück',
+    instagramLabel: 'instagram',
+    notFound: {heading: 'verirrt', body: "diese seite gibt's hier nicht."},
+    seo: {
+      title: 'softmess project',
+      description:
+        'handgemachte anhänger aus paracord und resin clay, gepresst in formen, die einfach nicht stillhalten wollen.',
+    },
+    footerLinks: [
+      {_key: 'impressum', _type: 'navLink', page: {_type: 'reference', _ref: impressumId}},
+      {_key: 'datenschutz', _type: 'navLink', page: {_type: 'reference', _ref: datenschutzId}},
+    ],
+  })
+
+  await upsertSingleton({
+    _id: 'homePage',
+    _type: 'homePage',
+    heading: 'softmess',
+    statement: 'folg dem weißen kaninchen.',
+    body: [
+      "dinge, die ich gemacht habe, weil ich wissen wollte, ob ich's kann — anhänger aus paracord und resin clay, gepresst in formen, die einfach nicht stillhalten wollen.",
+      'ganz klar handgemacht & wahrscheinlich nur einmal gemacht. zuhause in 353.',
+    ],
+    charm: {
+      _type: 'image',
+      alt: 'Ein handgemachter Anhänger aus Resin Clay an einer Paracord-Kordel',
+      asset: {_type: 'reference', _ref: redId},
+    },
+    actions: [
+      {
+        _key: 'instagram',
+        _type: 'action',
+        label: 'alles passiert auf instagram',
+        href: 'https://www.instagram.com/softmess.project/',
+      },
+      {_key: 'email', _type: 'action', label: 'hi@softmess.de', href: 'mailto:hi@softmess.de'},
     ],
   })
 

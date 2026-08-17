@@ -3,20 +3,21 @@ import {LinkIcon} from '@sanity/icons/Link'
 
 export const action = defineType({
   name: 'action',
-  title: 'Action',
+  title: 'Aktion',
   type: 'object',
   icon: LinkIcon,
   fields: [
     defineField({
       name: 'label',
+      title: 'Beschriftung',
       type: 'string',
-      description: 'Button text, e.g. "it all happens on instagram"',
+      description: 'Button-Text, z. B. "alles passiert auf instagram"',
       validation: (rule) => rule.required(),
     }),
     defineField({
       name: 'href',
       type: 'url',
-      title: 'Link',
+      title: 'Adresse',
       validation: (rule) =>
         rule
           .required()

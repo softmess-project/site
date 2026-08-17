@@ -9,6 +9,15 @@ import {beforeAll, describe, expect, it} from 'vitest'
 const DIST = join(import.meta.dirname, '..', process.env.DIST_DIR ?? 'dist-fixtures')
 const PAGES = ['index.html', 'impressum/index.html', 'datenschutz/index.html', '404.html']
 
+// The fixtures model every block type, in a fixed order, in English, so the
+// rendering pipeline is provably exercised end to end. Real content is
+// German and has exactly as many blocks as the owner has actually placed
+// (one hero block today) — asserting the fixture's exact copy or block count
+// against DIST_DIR=dist would be asserting content that was never supposed
+// to exist there. Those assertions are fixture-only; everything else in this
+// file holds for either build.
+const REAL_CONTENT = process.env.DIST_DIR === 'dist'
+
 function doc(page: string) {
   return parseHTML(readFileSync(join(DIST, page), 'utf8')).document
 }
@@ -17,7 +26,9 @@ function doc(page: string) {
 // literal "TBD" / "TODO" the imprint's address fields carry today — a
 // standalone word, not a substring, so e.g. "Datenschutzerklärung" is safe.
 function findPlaceholders(text: string): string[] {
-  const bracketed = text.match(/\[[a-z][^\]]{2,}\]/g) ?? []
+  // Case-insensitive so a capitalized placeholder like "[Straße]" is caught,
+  // not just the lowercase "[street and number]" convention.
+  const bracketed = text.match(/\[[a-z][^\]]{2,}\]/gi) ?? []
   const words = text.match(/\b(TBD|TODO)\b/gi) ?? []
   return [...bracketed, ...words]
 }
@@ -43,7 +54,7 @@ describe('built pages', () => {
 })
 
 describe('home page', () => {
-  it('renders the hero copy', () => {
+  it.skipIf(REAL_CONTENT)('renders the hero copy', () => {
     const text = doc('index.html').body.textContent ?? ''
     expect(text).toContain('softmess')
     expect(text).toContain('follow the white rabbit.')
@@ -88,6 +99,10 @@ describe('placeholder detection', () => {
     expect(findPlaceholders('TBD, § 18 (2) MStV.')).toEqual(['TBD'])
     expect(findPlaceholders('still a todo')).toEqual(['todo'])
     expect(findPlaceholders('Datenschutzerklärung')).toEqual([])
+  })
+
+  it('flags a capitalized bracket placeholder too, e.g. "[Straße]"', () => {
+    expect(findPlaceholders('wohnhaft in [Straße]')).toEqual(['[Straße]'])
   })
 })
 
@@ -167,12 +182,12 @@ describe('footer navigation', () => {
 })
 
 describe('page builder', () => {
-  it('renders every block type', () => {
+  it.skipIf(REAL_CONTENT)('renders every block type', () => {
     const d = doc('index.html')
     expect(d.querySelectorAll('main > section')).toHaveLength(5)
   })
 
-  it('renders blocks in array order', () => {
+  it.skipIf(REAL_CONTENT)('renders blocks in array order', () => {
     // The fixture's block order is hero, richText, imageText, gallery, cta.
     // Rendering out of order would be invisible to every other assertion here.
     const sections = [...doc('index.html').querySelectorAll('main > section')]

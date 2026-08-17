@@ -27,6 +27,26 @@ const preview = process.env.PREVIEW === '1'
 // Never on for preview: that Worker is editor-only and carries no /cdn route.
 const proxyImages = !preview && process.env.PROXY_IMAGES === '1'
 
+// The two endpoints that only make sense on the preview Worker. They live
+// outside src/pages because everything under it is prerendered in the static
+// build: guarded with `prerender = !PREVIEW` they still emitted their own 404
+// body to dist/api/diag and dist/api/draft-mode/enable, and Cloudflare's asset
+// router serves an existing file with HTTP 200 — so the public site answered
+// 200 on two routes that claimed to be absent. Injecting them keeps them out of
+// that build entirely, which also lets them drop their own PREVIEW guards.
+const previewRoutes = {
+  name: 'preview-routes',
+  hooks: {
+    'astro:config:setup': ({injectRoute}) => {
+      injectRoute({pattern: '/api/diag', entrypoint: './src/preview-routes/diag.ts'})
+      injectRoute({
+        pattern: '/api/draft-mode/enable',
+        entrypoint: './src/preview-routes/draft-mode-enable.ts',
+      })
+    },
+  },
+}
+
 export default defineConfig({
   site: preview ? 'https://preview.softmess.de' : 'https://softmess.de',
   trailingSlash: 'never',
@@ -49,7 +69,7 @@ export default defineConfig({
   adapter: preview ? cloudflare({configPath: 'wrangler.preview.jsonc'}) : undefined,
   // React exists only to host the visual-editing overlay island. Registering
   // the renderer only in preview mode is what keeps it out of the public build.
-  integrations: preview ? [react()] : [],
+  integrations: preview ? [react(), previewRoutes] : [],
   vite: {
     plugins: [tailwindcss()],
     // Inlined at build time so `if (import.meta.env.PREVIEW)` branches are

@@ -1,17 +1,13 @@
 import type {APIRoute} from 'astro'
 import {validatePreviewUrl} from '@sanity/preview-url-secret'
-import {previewSecretClient} from '../../../lib/sanity'
-import {DRAFT_COOKIE} from '../../../lib/draft'
+import {previewSecretClient} from '../lib/sanity'
+import {DRAFT_COOKIE} from '../lib/draft'
 
-// The static public build has no adapter (see astro.config.mjs), so an
-// unconditional `prerender = false` breaks it with NoAdapterInstalled. This
-// route is meaningless there anyway — draft mode only exists on preview — so
-// it prerenders to a static 404 outside of preview instead.
-export const prerender = !import.meta.env.PREVIEW
+// Lives outside src/pages and is injected only into the preview build — see the
+// preview-routes integration in astro.config.mjs for why.
+export const prerender = false
 
 export const GET: APIRoute = async ({request, cookies, redirect}) => {
-  if (!import.meta.env.PREVIEW) return new Response('Not found', {status: 404})
-
   const {isValid, redirectTo = '/'} = await validatePreviewUrl(previewSecretClient, request.url)
 
   if (!isValid) {

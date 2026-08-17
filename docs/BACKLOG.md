@@ -98,7 +98,19 @@ detail that makes this obviously not a Sanity problem, and `example.com` /
 request rules out a blanket egress block.
 
 To reproduce at any time: `curl https://preview.softmess.de/api/diag` (temporary
-route, `site/src/pages/api/diag.ts`, delete with this item).
+route, `site/src/preview-routes/diag.ts`, delete with this item).
+
+**Before blaming the 525 for the preview pages' 500, redeploy.** The preview
+Worker was being deployed with no `SANITY_PROJECT_ID`: the adapter-generated
+`dist/server/wrangler.json` carried `"vars": {}`, and since `deploy-preview`
+deliberately runs without `--config`, each deploy cleared the Worker's
+plain-text vars. `@sanity/client` then throws `Configuration must contain
+'projectId'` at module load — a 500 on every route, with the same symptom as
+the 525. `wrangler.preview.jsonc` now declares those vars, so a fresh deploy
+tells the two apart: pages that render mean the vars were the cause and this
+item shrinks to `/cdn/*`; pages that still 500 confirm the 525 reaches them.
+The `/api/diag` measurements are unaffected either way — that route imports no
+Sanity client, so it ran fine and its numbers stand.
 
 **Fallback if Cloudflare is slow:** move the preview Worker to `workers.dev`,
 where egress demonstrably works. It costs a hostname in
@@ -272,6 +284,10 @@ through `/cdn`. Skipped unless `LIVE=1`, so the offline gate is unchanged.
 
 It currently fails on exactly one assertion — preview returning 500 — which is
 §1.1 and is the correct result.
+
+Its `/cdn` assertions are gated on `PROXY_IMAGES`, matching `dist.test.ts`: with
+the flag off they would otherwise fail against a correct deploy. Export the same
+value the deployed build used when running it.
 
 `SITE_URL` is opt-in because `softmess.de` sits behind **Cloudflare Access** and
 answers an unauthenticated request with a redirect to a login page. Worth knowing:

@@ -16,6 +16,17 @@ for (const [key, value] of Object.entries(fileEnv)) {
 // which reads drafts and loads the visual-editing overlay.
 const preview = process.env.PREVIEW === '1'
 
+// Whether the static build emits same-origin /cdn/* image URLs instead of
+// cdn.sanity.io ones. Off by default, and that default is load-bearing: the
+// /cdn route works only if the Worker can reach cdn.sanity.io, and right now
+// Workers on the softmess.de zone get HTTP 525 doing exactly that
+// (docs/BACKLOG.md §1.1). Shipping the proxied URLs before that is fixed would
+// break every image on the site, so the safe shape is the default and this is
+// the one variable to flip once Cloudflare resolves it.
+//
+// Never on for preview: that Worker is editor-only and carries no /cdn route.
+const proxyImages = !preview && process.env.PROXY_IMAGES === '1'
+
 export default defineConfig({
   site: preview ? 'https://preview.softmess.de' : 'https://softmess.de',
   trailingSlash: 'never',
@@ -43,7 +54,10 @@ export default defineConfig({
     plugins: [tailwindcss()],
     // Inlined at build time so `if (import.meta.env.PREVIEW)` branches are
     // eliminated entirely from the static bundle, imports included.
-    define: {'import.meta.env.PREVIEW': JSON.stringify(preview)},
+    define: {
+      'import.meta.env.PREVIEW': JSON.stringify(preview),
+      'import.meta.env.PROXY_IMAGES': JSON.stringify(proxyImages),
+    },
     // @sanity/visual-editing is React-Compiler output, so it imports {c} from
     // react-compiler-runtime — a CommonJS package with no named exports until
     // Vite pre-bundles it. Without this the overlay island fails to hydrate.

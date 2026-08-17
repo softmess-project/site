@@ -45,8 +45,9 @@ describe('content layer in fixture mode', () => {
       380,
       475,
     )
-    // Same-origin: the builder's cdn.sanity.io origin is rewritten onto /cdn,
-    // which src/worker.ts proxies. The transform params ride along untouched.
+    // PROXY_IMAGES is set by `pnpm test`, so the builder's cdn.sanity.io origin
+    // is rewritten onto /cdn here. The transform params ride along untouched
+    // either way, which is what this test is really about.
     expect(url).not.toContain('cdn.sanity.io')
     expect(url.split('?')[0]).toBe(
       '/cdn/images/85i3osnk/production/0000000000000000000000000000000000000000-966x1207.jpg',

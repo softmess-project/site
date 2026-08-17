@@ -23,6 +23,13 @@ const PAGES = ['index.html', 'impressum/index.html', 'datenschutz/index.html', '
 // agree, and the preview hostname never leaks.
 const REAL_CONTENT = process.env.DIST_DIR === 'dist'
 
+// Whether the build under test rewrote images onto our own origin. Must match
+// the flag the build ran with — see astro.config.mjs. Both shapes are asserted
+// rather than one, because the flag is off in production until the zone's
+// outbound TLS problem is fixed (docs/BACKLOG.md §1.1) and the shipping shape is
+// the one that most needs a test.
+const PROXIED = process.env.PROXY_IMAGES === '1'
+
 function doc(page: string) {
   return parseHTML(readFileSync(join(DIST, page), 'utf8')).document
 }
@@ -74,13 +81,15 @@ describe('home page', () => {
     expect(text).toContain('refuse to sit still')
   })
 
-  it('renders the hero image as a responsive same-origin proxied image', () => {
+  it('renders the hero image as a responsive image from the expected origin', () => {
     const img = doc('index.html').querySelector('main img')
     expect(img).not.toBeNull()
-    // Same-origin `/cdn/...`, not `cdn.sanity.io` — src/worker.ts proxies it so
-    // no visitor IP reaches Sanity. The path still carries Sanity's own
-    // project/dataset/asset layout, which is what the Worker pins against.
-    expect(img!.getAttribute('src')).toMatch(/^\/cdn\/images\/85i3osnk\/production\//)
+    // Proxied: same-origin `/cdn/...`, still carrying Sanity's own
+    // project/dataset/asset layout, which is what src/worker.ts pins against.
+    // Unproxied: straight at Sanity's CDN.
+    expect(img!.getAttribute('src')).toMatch(
+      PROXIED ? /^\/cdn\/images\/85i3osnk\/production\// : /^https:\/\/cdn\.sanity\.io\/images\//,
+    )
     expect(img!.getAttribute('srcset')).toContain('2x')
     expect(img!.getAttribute('alt')?.length).toBeGreaterThan(0)
   })
@@ -135,10 +144,11 @@ describe('promises the site makes in its own privacy policy', () => {
   })
 
   it('loads no third-party subresource', () => {
-    // Relative and same-origin only. `cdn.sanity.io` used to be allowed here
-    // and is now deliberately not: src/worker.ts proxies Sanity's images
-    // through /cdn/*, so the built HTML must name no external host at all.
-    const allowed = /^(\/|\.|data:|#)/
+    // With the proxy on, relative and same-origin only — the built HTML names no
+    // external host at all, which is the whole point of src/worker.ts. With it
+    // off, cdn.sanity.io is the one permitted exception, and the privacy policy
+    // has to keep disclosing it.
+    const allowed = PROXIED ? /^(\/|\.|data:|#)/ : /^(\/|\.|data:|#)|cdn\.sanity\.io/
     for (const page of PAGES) {
       const d = doc(page)
       const refs = [

@@ -11,11 +11,11 @@ const builder = createImageUrlBuilder({
  *  proxies it. This is what lets the privacy policy stop disclosing that a
  *  visitor's IP reaches Sanity — Sanity sees Cloudflare's egress instead.
  *
- *  Not applied in the preview build: that Worker is editor-only, never public,
- *  and giving it a second proxy route would buy nothing. `PREVIEW` is inlined
- *  at build time (astro.config.mjs), so one branch or the other is eliminated. */
+ *  Gated on PROXY_IMAGES, which is off by default and never on for preview —
+ *  see astro.config.mjs for why the safe shape is the default. Both flags are
+ *  inlined at build time, so the losing branch is eliminated entirely. */
 function sameOrigin(url: string): string {
-  if (import.meta.env.PREVIEW) return url
+  if (!import.meta.env.PROXY_IMAGES) return url
   return url.replace('https://cdn.sanity.io/', '/cdn/')
 }
 

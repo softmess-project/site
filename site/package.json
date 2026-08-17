@@ -7,9 +7,9 @@
     "dev:static": "astro dev --port 4321 --strictPort",
     "build": "astro build",
     "build:preview": "PREVIEW=1 astro build",
-    "build:fixtures": "SANITY_FIXTURES=1 astro build --outDir dist-fixtures",
+    "build:fixtures": "SANITY_FIXTURES=1 PROXY_IMAGES=1 astro build --outDir dist-fixtures",
     "check": "astro check",
-    "test": "pnpm build:fixtures && vitest run"
+    "test": "PROXY_IMAGES=1 pnpm build:fixtures && PROXY_IMAGES=1 vitest run"
   },
   "dependencies": {
     "@fontsource/bagel-fat-one": "^5.3.0",

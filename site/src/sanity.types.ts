@@ -25,11 +25,9 @@ export type Cta = {
   _type: "cta";
   heading?: string;
   body?: string;
-  actions?: Array<
-    {
-      _key: string;
-    } & Action
-  >;
+  actions?: Array<{
+    _key: string;
+  } & Action>;
   background?: "normal" | "akzent";
 };
 
@@ -66,11 +64,9 @@ export type ImageText = {
   };
   heading?: string;
   body?: string;
-  actions?: Array<
-    {
-      _key: string;
-    } & Action
-  >;
+  actions?: Array<{
+    _key: string;
+  } & Action>;
   imagePosition?: "links" | "rechts";
   background?: "normal" | "sand" | "akzent";
 };
@@ -112,30 +108,22 @@ export type Hero = {
     _type: "image";
   };
   imagePosition?: "links" | "rechts";
-  actions?: Array<
-    {
-      _key: string;
-    } & Action
-  >;
+  actions?: Array<{
+    _key: string;
+  } & Action>;
 };
 
-export type PageBuilder = Array<
-  | ({
-      _key: string;
-    } & Hero)
-  | ({
-      _key: string;
-    } & RichText)
-  | ({
-      _key: string;
-    } & ImageText)
-  | ({
-      _key: string;
-    } & Gallery)
-  | ({
-      _key: string;
-    } & Cta)
->;
+export type PageBuilder = Array<{
+  _key: string;
+} & Hero | {
+  _key: string;
+} & RichText | {
+  _key: string;
+} & ImageText | {
+  _key: string;
+} & Gallery | {
+  _key: string;
+} & Cta>;
 
 export type PageReference = {
   _ref: string;
@@ -210,16 +198,12 @@ export type SiteSettings = {
   copyright?: string;
   backLabel?: string;
   instagramLabel?: string;
-  headerLinks?: Array<
-    {
-      _key: string;
-    } & NavLink
-  >;
-  footerLinks?: Array<
-    {
-      _key: string;
-    } & NavLink
-  >;
+  headerLinks?: Array<{
+    _key: string;
+  } & NavLink>;
+  footerLinks?: Array<{
+    _key: string;
+  } & NavLink>;
   notFound?: {
     heading?: string;
     body?: string;
@@ -334,31 +318,7 @@ export type Geopoint = {
   alt?: number;
 };
 
-export type AllSanitySchemaTypes =
-  | Action
-  | Cta
-  | SanityImageAssetReference
-  | Gallery
-  | ImageText
-  | RichText
-  | Hero
-  | PageBuilder
-  | PageReference
-  | NavLink
-  | Page
-  | Slug
-  | HomePage
-  | SanityImageCrop
-  | SanityImageHotspot
-  | SiteSettings
-  | SanityImagePaletteSwatch
-  | SanityImagePalette
-  | SanityImageDimensions
-  | SanityImageMetadata
-  | SanityFileAsset
-  | SanityAssetSourceData
-  | SanityImageAsset
-  | Geopoint;
+export type AllSanitySchemaTypes = Action | Cta | SanityImageAssetReference | Gallery | ImageText | RichText | Hero | PageBuilder | PageReference | NavLink | Page | Slug | HomePage | SanityImageCrop | SanityImageHotspot | SiteSettings | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageMetadata | SanityFileAsset | SanityAssetSourceData | SanityImageAsset | Geopoint;
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
@@ -393,87 +353,81 @@ export type SITE_SETTINGS_QUERY_RESULT = {
 // Variable: HOME_PAGE_QUERY
 // Query: *[_id == "homePage" && _type == "homePage"][0]{  pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},    _type == "richText" => {content, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}  }}
 export type HOME_PAGE_QUERY_RESULT = {
-  pageBuilder: Array<
-    | {
+  pageBuilder: Array<{
+    _key: string;
+    _type: "cta";
+    heading: string | null;
+    body: string | null;
+    background: "akzent" | "normal" | null;
+    actions: Array<{
+      _key: string;
+      label: string | null;
+      href: string | null;
+    }> | null;
+  } | {
+    _key: string;
+    _type: "gallery";
+    images: Array<{
+      _key: string;
+      alt: string | null;
+      asset: SanityImageAssetReference | null;
+    }> | null;
+    columns: "2" | "3" | null;
+  } | {
+    _key: string;
+    _type: "hero";
+    heading: string | null;
+    statement: string | null;
+    body: Array<string> | null;
+    image: {
+      alt: string | null;
+      asset: SanityImageAssetReference | null;
+    } | null;
+    imagePosition: "links" | "rechts" | null;
+    actions: Array<{
+      _key: string;
+      label: string | null;
+      href: string | null;
+    }> | null;
+  } | {
+    _key: string;
+    _type: "imageText";
+    image: {
+      alt: string | null;
+      asset: SanityImageAssetReference | null;
+    } | null;
+    heading: string | null;
+    body: string | null;
+    imagePosition: "links" | "rechts" | null;
+    background: "akzent" | "normal" | "sand" | null;
+    actions: Array<{
+      _key: string;
+      label: string | null;
+      href: string | null;
+    }> | null;
+  } | {
+    _key: string;
+    _type: "richText";
+    content: Array<{
+      children?: Array<{
+        marks?: Array<string>;
+        text?: string;
+        _type: "span";
         _key: string;
-        _type: "cta";
-        heading: string | null;
-        body: string | null;
-        background: "akzent" | "normal" | null;
-        actions: Array<{
-          _key: string;
-          label: string | null;
-          href: string | null;
-        }> | null;
-      }
-    | {
+      }>;
+      style?: "h2" | "normal";
+      listItem?: "bullet";
+      markDefs?: Array<{
+        href?: string;
+        _type: "link";
         _key: string;
-        _type: "gallery";
-        images: Array<{
-          _key: string;
-          alt: string | null;
-          asset: SanityImageAssetReference | null;
-        }> | null;
-        columns: "2" | "3" | null;
-      }
-    | {
-        _key: string;
-        _type: "hero";
-        heading: string | null;
-        statement: string | null;
-        body: Array<string> | null;
-        image: {
-          alt: string | null;
-          asset: SanityImageAssetReference | null;
-        } | null;
-        imagePosition: "links" | "rechts" | null;
-        actions: Array<{
-          _key: string;
-          label: string | null;
-          href: string | null;
-        }> | null;
-      }
-    | {
-        _key: string;
-        _type: "imageText";
-        image: {
-          alt: string | null;
-          asset: SanityImageAssetReference | null;
-        } | null;
-        heading: string | null;
-        body: string | null;
-        imagePosition: "links" | "rechts" | null;
-        background: "akzent" | "normal" | "sand" | null;
-        actions: Array<{
-          _key: string;
-          label: string | null;
-          href: string | null;
-        }> | null;
-      }
-    | {
-        _key: string;
-        _type: "richText";
-        content: Array<{
-          children?: Array<{
-            marks?: Array<string>;
-            text?: string;
-            _type: "span";
-            _key: string;
-          }>;
-          style?: "h2" | "normal";
-          listItem?: "bullet";
-          markDefs?: Array<{
-            href?: string;
-            _type: "link";
-            _key: string;
-          }>;
-          level?: number;
-          _type: "block";
-          _key: string;
-        }> | null;
-        width: "breit" | "schmal" | null;
-      }
-  > | null;
+      }>;
+      level?: number;
+      _type: "block";
+      _key: string;
+    }> | null;
+    width: "breit" | "schmal" | null;
+  }> | null;
 } | null;
 
 // Source: ../site/src/lib/content.ts
@@ -491,121 +445,101 @@ export type PAGE_QUERY_RESULT = {
     title: string | null;
     description: string | null;
   } | null;
-  pageBuilder: Array<
-    | {
+  pageBuilder: Array<{
+    _key: string;
+    _type: "cta";
+    heading: string | null;
+    body: string | null;
+    background: "akzent" | "normal" | null;
+    actions: Array<{
+      _key: string;
+      label: string | null;
+      href: string | null;
+    }> | null;
+  } | {
+    _key: string;
+    _type: "gallery";
+    images: Array<{
+      _key: string;
+      alt: string | null;
+      asset: SanityImageAssetReference | null;
+    }> | null;
+    columns: "2" | "3" | null;
+  } | {
+    _key: string;
+    _type: "hero";
+    heading: string | null;
+    statement: string | null;
+    body: Array<string> | null;
+    image: {
+      alt: string | null;
+      asset: SanityImageAssetReference | null;
+    } | null;
+    imagePosition: "links" | "rechts" | null;
+    actions: Array<{
+      _key: string;
+      label: string | null;
+      href: string | null;
+    }> | null;
+  } | {
+    _key: string;
+    _type: "imageText";
+    image: {
+      alt: string | null;
+      asset: SanityImageAssetReference | null;
+    } | null;
+    heading: string | null;
+    body: string | null;
+    imagePosition: "links" | "rechts" | null;
+    background: "akzent" | "normal" | "sand" | null;
+    actions: Array<{
+      _key: string;
+      label: string | null;
+      href: string | null;
+    }> | null;
+  } | {
+    _key: string;
+    _type: "richText";
+    content: Array<{
+      children?: Array<{
+        marks?: Array<string>;
+        text?: string;
+        _type: "span";
         _key: string;
-        _type: "cta";
-        heading: string | null;
-        body: string | null;
-        background: "akzent" | "normal" | null;
-        actions: Array<{
-          _key: string;
-          label: string | null;
-          href: string | null;
-        }> | null;
-      }
-    | {
+      }>;
+      style?: "h2" | "normal";
+      listItem?: "bullet";
+      markDefs?: Array<{
+        href?: string;
+        _type: "link";
         _key: string;
-        _type: "gallery";
-        images: Array<{
-          _key: string;
-          alt: string | null;
-          asset: SanityImageAssetReference | null;
-        }> | null;
-        columns: "2" | "3" | null;
-      }
-    | {
-        _key: string;
-        _type: "hero";
-        heading: string | null;
-        statement: string | null;
-        body: Array<string> | null;
-        image: {
-          alt: string | null;
-          asset: SanityImageAssetReference | null;
-        } | null;
-        imagePosition: "links" | "rechts" | null;
-        actions: Array<{
-          _key: string;
-          label: string | null;
-          href: string | null;
-        }> | null;
-      }
-    | {
-        _key: string;
-        _type: "imageText";
-        image: {
-          alt: string | null;
-          asset: SanityImageAssetReference | null;
-        } | null;
-        heading: string | null;
-        body: string | null;
-        imagePosition: "links" | "rechts" | null;
-        background: "akzent" | "normal" | "sand" | null;
-        actions: Array<{
-          _key: string;
-          label: string | null;
-          href: string | null;
-        }> | null;
-      }
-    | {
-        _key: string;
-        _type: "richText";
-        content: Array<{
-          children?: Array<{
-            marks?: Array<string>;
-            text?: string;
-            _type: "span";
-            _key: string;
-          }>;
-          style?: "h2" | "normal";
-          listItem?: "bullet";
-          markDefs?: Array<{
-            href?: string;
-            _type: "link";
-            _key: string;
-          }>;
-          level?: number;
-          _type: "block";
-          _key: string;
-        }> | null;
-        width: "breit" | "schmal" | null;
-      }
-  > | null;
+      }>;
+      level?: number;
+      _type: "block";
+      _key: string;
+    }> | null;
+    width: "breit" | "schmal" | null;
+  }> | null;
 } | null;
 
 // Source: ../site/src/lib/content.ts
 // Variable: NAV_QUERY
 // Query: *[_id == "siteSettings"][0]{    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}  }
-export type NAV_QUERY_RESULT =
-  | {
-      headerLinks: null;
-      footerLinks: null;
-    }
-  | {
-      headerLinks: Array<{
-        _key: string;
-        label: string | null;
-        title: string | null;
-        slug: string | null;
-      }> | null;
-      footerLinks: Array<{
-        _key: string;
-        label: string | null;
-        title: string | null;
-        slug: string | null;
-      }> | null;
-    }
-  | null;
+export type NAV_QUERY_RESULT = {
+  headerLinks: null;
+  footerLinks: null;
+} | {
+  headerLinks: Array<{
+    _key: string;
+    label: string | null;
+    title: string | null;
+    slug: string | null;
+  }> | null;
+  footerLinks: Array<{
+    _key: string;
+    label: string | null;
+    title: string | null;
+    slug: string | null;
+  }> | null;
+} | null;
 
-// Query TypeMap
-import "@sanity/client";
-declare module "@sanity/client" {
-  interface SanityQueries {
-    '\n  *[_id == "siteSettings" && _type == "siteSettings"][0]{\n    brand, tagline, email, instagram, instagramHandle, copyright,\n    backLabel, instagramLabel, notFound{heading, body},\n    seo{title, description, ogImage}\n  }\n': SITE_SETTINGS_QUERY_RESULT;
-    '\n  *[_id == "homePage" && _type == "homePage"][0]{\n  pageBuilder[]{\n    _key, _type,\n    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},\n    _type == "richText" => {content, width},\n    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},\n    _type == "gallery" => {images[]{_key, alt, asset}, columns},\n    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}\n  }\n}\n': HOME_PAGE_QUERY_RESULT;
-    '\n  *[_type == "page" && defined(slug.current)].slug.current\n': PAGE_SLUGS_QUERY_RESULT;
-    '\n  *[_type == "page" && slug.current == $slug][0]{\n    title, "slug": slug.current, seo{title, description},\n    \n  pageBuilder[]{\n    _key, _type,\n    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},\n    _type == "richText" => {content, width},\n    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},\n    _type == "gallery" => {images[]{_key, alt, asset}, columns},\n    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}\n  }\n\n  }\n': PAGE_QUERY_RESULT;
-    '\n  *[_id == "siteSettings"][0]{\n    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},\n    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}\n  }\n': NAV_QUERY_RESULT;
-  }
-}

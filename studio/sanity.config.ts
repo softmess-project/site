@@ -22,6 +22,12 @@ export default defineConfig({
   projectId: '85i3osnk',
   dataset: 'production',
 
+  apps: {
+    canvas: {enabled: true},
+  },
+
+  releases: { enabled: false },
+
   plugins: [
     structureTool({structure}),
     presentationTool({

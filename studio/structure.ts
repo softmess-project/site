@@ -6,7 +6,7 @@ import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 
 // The two legal pages get their own grouped list instead of living among
 // ordinary Seiten — §5 of the design spec.
-const LEGAL_SLUGS = ['impressum', 'datenschutz']
+const LEGAL_SLUGS = ['impressum', 'datenschutz' ]
 
 export const structure: StructureResolver = (S) =>
   S.list()

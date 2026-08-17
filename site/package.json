@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "PREVIEW=1 astro dev --port 4321 --strictPort",
+    "dev:static": "astro dev --port 4321 --strictPort",
     "build": "astro build",
     "build:preview": "PREVIEW=1 astro build",
     "build:fixtures": "SANITY_FIXTURES=1 astro build --outDir dist-fixtures",

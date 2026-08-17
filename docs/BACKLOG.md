@@ -20,11 +20,15 @@ compliant. The placeholder guard fails the deploy build while that text is prese
 
 Fix it in the Studio (`Impressum` page), not in code. The guard clears itself.
 
+-> will be sorted out later, remove these tests from the build entirely
+
 ### 1.2 A DPA with Sanity
 
 The privacy policy names Sanity as a processor. Naming a processor without an
 Auftragsverarbeitungsvertrag on file is the wrong half of the fix — the disclosure is accurate, the
 legal basis is missing.
+
+-> will be sorted out later from a proper template, assume correct for now
 
 ### 1.3 German copy review
 
@@ -32,6 +36,9 @@ Every string has a German original now, but the migration carried over what alre
 one read-through by you, particularly the privacy policy, which was rewritten to be *truthful*
 (it now describes what the site actually does — no cookies, self-hosted fonts, images from
 `cdn.sanity.io` with the IP consequence spelled out) rather than boilerplate.
+
+-> reviewed and fixed. assume sanity is correct; remove the seed script locally, or replace it with 
+   lorem ipsum to avoid hardcoding dynamic copy.
 
 ### 1.4 Task 11 — the usability session
 

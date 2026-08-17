@@ -10,7 +10,7 @@ export const siteSettings = defineType({
     {name: 'brand', title: 'Marke', default: true},
     {name: 'navigation', title: 'Navigation'},
     {name: 'notFound', title: '404'},
-    {name: 'seo', title: 'Suchmaschinen'},
+    {name: 'seo', title: 'SEO'},
   ],
   fields: [
     defineField({

@@ -26,7 +26,7 @@ const {blocks} = Astro.props
         case 'hero':
           return <Hero {...block} semanticLevel={semanticLevel} />
         case 'richText':
-          return <RichText {...block} />
+          return <RichText {...block} semanticLevel={semanticLevel} />
         case 'imageText':
           return <ImageText {...block} semanticLevel={semanticLevel} />
         case 'gallery':

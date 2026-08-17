@@ -105,7 +105,10 @@ describe('home page', () => {
 describe('content pages', () => {
   it('renders portable text headings, paragraphs and mailto links', () => {
     const d = doc('impressum/index.html')
-    expect(d.querySelector('main h2')?.textContent?.length).toBeGreaterThan(0)
+    // Either level: the first heading of a page-opening richText block is
+    // promoted to the page's h1, so pinning h2 here would pin the position of
+    // the block rather than that headings render at all.
+    expect(d.querySelector('main h1, main h2')?.textContent?.length).toBeGreaterThan(0)
     expect(d.querySelector('main p')).not.toBeNull()
     // Any mailto, not a specific address — this checks that Portable Text
     // renders link marks at all, which is structure; which address the imprint
@@ -227,10 +230,16 @@ describe('page builder', () => {
     expect(sections[3].querySelectorAll('img').length).toBeGreaterThan(1)
   })
 
-  it('gives the page exactly one h1, on the first block', () => {
-    const d = doc('index.html')
-    expect(d.querySelectorAll('h1')).toHaveLength(1)
-    expect(d.querySelector('main > section:first-child h1')).not.toBeNull()
+  it('gives every page exactly one h1, on the first block', () => {
+    // Every content page, not just the home page: the legal pages open with a
+    // richText block, and when only Hero/ImageText/Cta honoured semanticLevel
+    // that block silently consumed the h1 slot and emitted nothing, leaving
+    // those pages with no h1 at all while this assertion still passed.
+    for (const page of PAGES.filter((p) => p !== '404.html')) {
+      const d = doc(page)
+      expect(d.querySelectorAll('h1'), page).toHaveLength(1)
+      expect(d.querySelector('main > section:first-child h1'), page).not.toBeNull()
+    }
   })
 
   it.skipIf(REAL_CONTENT)('maps variants to classes rather than falling through to defaults', () => {

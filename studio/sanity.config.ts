@@ -14,8 +14,20 @@ import {SINGLETON_TYPES} from './lib/singletons'
 // variable, which must match the Worker's workers.dev hostname — the preview
 // Worker cannot live on the softmess.de zone, where its subrequests to
 // api.sanity.io come back 525.
+//
+// Read from both places on purpose. `sanity build` exposes SANITY_STUDIO_* via
+// import.meta.env, and separately shims `process.env` to `{}` for browser code.
+// Which of the two wins is not stable: a local build folded
+// `process.env.SANITY_STUDIO_PREVIEW_ORIGIN` to the literal, while CI compiled
+// the same source to `{}.SANITY_STUDIO_PREVIEW_ORIGIN` — undefined — and
+// silently shipped a Studio whose Presentation pane opened localhost:4321
+// against the production Studio. import.meta.env is the mechanism Sanity
+// documents; process.env stays as a fallback so neither build can regress.
+const env = import.meta.env as unknown as Record<string, string | undefined>
 const previewOrigin =
-  process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? 'http://localhost:4321'
+  env?.SANITY_STUDIO_PREVIEW_ORIGIN ??
+  process.env.SANITY_STUDIO_PREVIEW_ORIGIN ??
+  'http://localhost:4321'
 
 export default defineConfig({
   name: 'default',

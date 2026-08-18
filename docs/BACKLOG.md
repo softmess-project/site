@@ -2,7 +2,7 @@
 
 State after the backlog-clearing pass on `feat/page-builder`.
 
-`pnpm verify` is green: 18 studio tests, 43 site tests, 8 skipped (the live gate).
+`pnpm verify` is green: 18 studio tests, 49 site tests, 12 skipped (the live gate).
 `pnpm build:site:deploy` **passes** — the real-content gate no longer blocks.
 
 Two things are open, and neither is a code problem.
@@ -10,14 +10,15 @@ Two things are open, and neither is a code problem.
 **§1.1 — the zone cannot reach some hosts over TLS.** Every Worker on a custom
 domain in the `softmess.de` zone gets HTTP 525 on outbound TLS to `api.sanity.io`,
 `cdn.sanity.io` and `github.com`, while the same code on `workers.dev` reaches all
-of them. That is what breaks the preview Worker, and it is why the image proxy
-ships dormant behind a flag (§1.2). It needs Cloudflare, not a commit.
+of them. The preview Worker has moved to workers.dev to get around it; the image
+proxy still ships dormant behind a flag (§1.2), because it has to be same-origin
+on `softmess.de`. Filed with Sanity, awaiting a reply.
 
-**§1.3 — nothing deploys automatically yet.** The Sanity publish webhook is
-correct and filtered, but the Cloudflare Workers Builds job it fires has never
-produced a deployment; every deploy of `softmess` so far has been a manual
-`wrangler deploy`. Finishing it is dashboard configuration, and §1.3 spells out
-exactly which fields.
+**§1.3 — publishing does not deploy the site yet.** Deploys run from
+`.github/workflows/deploy.yml`, which handles all three Workers and works;
+Workers Builds is dropped, having never produced a deployment. What is left is
+repointing the Sanity publish webhook at GitHub's `repository_dispatch`, which
+§1.3 spells out and which is now proven to trigger a deploy.
 
 ---
 
@@ -149,53 +150,54 @@ shape either way, including which origins its third-party allowlist permits.
 the build environment, redeploy, run `SITE_URL=… pnpm verify:live` to confirm
 `/cdn` serves images, and then delete the privacy-policy paragraph in §1.5.
 
-### 1.3 Workers Builds is the chosen mechanism but has never deployed anything
+### 1.3 Publishing does not deploy the site yet — one webhook away
 
-**This is the open half of "does publishing deploy the site?" — and today the
-answer is no.**
+**Decision: GitHub Actions deploys all three Workers. Workers Builds is dropped.**
 
-The Sanity webhook fires a Cloudflare Workers Builds deploy hook, but every
-deployment of the `softmess` Worker reads `Source: Unknown (deployment)`,
-authored by `moritz@mazetti.me` — i.e. a manual `wrangler deploy`. **No
-Workers-Builds-sourced deployment exists.** The hook is posting into something
-that is either unconfigured or failing silently. It cannot be diagnosed from here:
-the API token gets `Authentication error` on `accounts/…/builds/repos`, and this
-is dashboard-only configuration.
+Workers Builds was the previously chosen mechanism and never produced a single
+deployment. Every deployment of `softmess`, `softmess-preview` and
+`softmess-studio` reads `"source": "wrangler"` — the deploy hook posts into
+something unconfigured, and the build config behind it is dashboard-only, so it
+cannot be reviewed, diffed, or fixed from the repo.
 
-To finish it, in **Workers & Pages → `softmess` → Settings → Build**:
+`.github/workflows/deploy.yml` already does the whole job: three jobs, one per
+Worker, each ending in `wrangler deploy`, all driven from one place. It was run
+end to end on 2026-08-18 with `target=all` and deployed all three. Keeping it is
+strictly better than Workers Builds here:
+
+- Workers Builds is **per-Worker**, so three Workers means three dashboard
+  configs duplicating build commands that already live in `deploy.yml`.
+- It builds **independently of `verify`**, so a commit the test gate rejected can
+  still ship. `deploy.yml` deploys the commit CI just tested.
+- The build environment — `SANITY_STUDIO_PREVIEW_ORIGIN`, `SANITY_API_TOKEN`, the
+  Cloudflare credentials — already lives in GitHub.
+- Its one real advantage, publish→rebuild without CI, is already covered by
+  `repository_dispatch`.
+
+**`repository_dispatch` is proven.** It was previously written off as "nothing
+fires it"; a manual dispatch on 2026-08-18 triggered `deploy-site` and deployed
+from `main`. `deploy.yml` is on the default branch, which is what that path
+requires.
+
+**What is left:** repoint the Sanity webhook `LRnvr01wjiGvxTgh` (still named
+`Cloudflare`) from the Workers Builds deploy hook to GitHub, then delete the
+deploy hook and the Workers Builds config. The rule and filter below are already
+correct and carry over unchanged.
 
 | field | value |
 | --- | --- |
-| Repository | `softmess-project/site` |
-| Branch | `main` |
-| Root directory | `/` — the repo root, so the pnpm workspace resolves |
-| Build command | `pnpm build:site:deploy` |
-| Deploy command | `pnpm --filter site exec wrangler deploy --config wrangler.jsonc` |
+| URL | `https://api.github.com/repos/softmess-project/site/dispatches` |
+| Method | `POST` |
+| Projection | `{"event_type": "sanity-publish"}` |
+| Header | `Accept: application/vnd.github+json` |
+| Header | `Authorization: Bearer <token>` |
 
-`--config` is not optional; see §3.2 for what it prevents.
+The token needs only permission to POST that one endpoint — a fine-grained PAT
+scoped to `softmess-project/site` with **Contents: read and write**, not a
+personal classic token. It is stored in the webhook's headers, where Sanity does
+not read it back, so record it somewhere you can rotate from.
 
-Build environment variables: none are strictly required — `SANITY_PROJECT_ID` and
-`SANITY_DATASET` come from the committed `.env`, and the dataset is publicly
-readable, so the build works unauthenticated. Add `SANITY_API_TOKEN` if you would
-rather not depend on that. Leave `PROXY_IMAGES` unset until §1.1 is fixed (§1.2).
-
-Using `build:site:deploy` as the build command is deliberate: it runs the
-real-content gate, so content that would break the site fails the build instead of
-shipping.
-
-Two things to know once it works:
-
-- **Workers Builds is per-Worker.** Configuring it on `softmess` gives you
-  content→deploy and code→deploy for the *public site only*. `softmess-preview`
-  and `softmess-studio` still need either their own build configs or a manual
-  `deploy.yml` run.
-- Verify it took by re-running `wrangler deployments list --config wrangler.jsonc`
-  and looking for a deployment whose source is a build rather than `Unknown
-  (deployment)`.
-
-**The Sanity side is already done.** The live webhook `Cloudflare` (id
-`LRnvr01wjiGvxTgh`, pointing at the Workers Builds deploy hook) now carries the
-type filter the old backlog asked for:
+The type filter the old backlog asked for is already live on that webhook:
 
 ```groq
 _type in ["homePage", "page", "siteSettings"]
@@ -207,12 +209,10 @@ dataset: it matches the two `page` documents, `homePage` and `siteSettings`, and
 skips `sanity.imageAsset`, `system.group` and `system.retention`, all of which
 used to trigger a build for nothing. `includeDrafts: false` was already correct.
 
-`.github/workflows/deploy.yml` therefore serves **manual** deploys —
-`workflow_dispatch` with a target of all/site/preview/studio. Its `deploy-site`
-job also accepts `repository_dispatch: [sanity-publish]`, which nothing fires; it
-is left in place as the escape hatch if Workers Builds is ever dropped. Note that
-`repository_dispatch` only triggers workflows on the **default branch**, so that
-path needs `deploy.yml` on `main` before it could work at all.
+`.github/workflows/deploy.yml` serves both paths: `workflow_dispatch` with a
+target of all/site/preview/studio for manual deploys, and
+`repository_dispatch: [sanity-publish]` on `deploy-site` for the publish hook
+above.
 
 Still worth a thought, not done: the hook's `dataset` is `"*"`. With one dataset
 that is harmless, but a future staging dataset would trigger production deploys.

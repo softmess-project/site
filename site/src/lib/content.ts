@@ -58,10 +58,15 @@ export const PAGE_QUERY = defineQuery(`
   }
 `)
 
+// The `[defined(...)]` filters drop links whose page reference does not
+// resolve. navLink marks the reference `required()`, but that validates the
+// link, not the target: a page that has been deleted, or that exists only as a
+// draft while this runs on the published perspective, dereferences to null and
+// would otherwise be projected as `{title: null, slug: null}`.
 export const NAV_QUERY = defineQuery(`
   *[_id == "siteSettings"][0]{
-    headerLinks[]{_key, label, "title": page->title, "slug": page->slug.current},
-    footerLinks[]{_key, label, "title": page->title, "slug": page->slug.current}
+    headerLinks[defined(page->slug.current)]{_key, label, "title": page->title, "slug": page->slug.current},
+    footerLinks[defined(page->slug.current)]{_key, label, "title": page->title, "slug": page->slug.current}
   }
 `)
 
@@ -107,10 +112,19 @@ export async function getPage(client: SanityClient, slug: string): Promise<Page 
   return ((await client.fetch(PAGE_QUERY, {slug})) as Page) ?? null
 }
 
+/** Links that can actually be rendered. Header and Footer interpolate the slug
+ *  straight into an href, so one that survived as null ships `<a href="/null">`
+ *  with no text — invisible, clickable, and 404. NAV_QUERY already filters
+ *  these out; repeating it here is what covers the fixture path, which never
+ *  runs that query, and makes this the one boundary every consumer passes. */
+function renderable(links: Nav['headerLinks']): NonNullable<Nav['headerLinks']> {
+  return (links ?? []).filter((link) => link.slug !== null)
+}
+
 export async function getNav(client: SanityClient): Promise<Nav> {
   if (USE_FIXTURES) {
     const settings = siteSettingsFixture as unknown as Nav
-    return {headerLinks: settings.headerLinks ?? [], footerLinks: settings.footerLinks ?? []}
+    return {headerLinks: renderable(settings.headerLinks), footerLinks: renderable(settings.footerLinks)}
   }
   const nav = (await client.fetch(NAV_QUERY)) as Nav | null
   if (!nav) {
@@ -118,5 +132,5 @@ export async function getNav(client: SanityClient): Promise<Nav> {
       'Das Dokument "Website-Einstellungen" fehlt in Sanity. Ohne es kann die Navigation nicht gebaut werden.',
     )
   }
-  return nav
+  return {headerLinks: renderable(nav.headerLinks), footerLinks: renderable(nav.footerLinks)}
 }

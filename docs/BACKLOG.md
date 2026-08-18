@@ -97,8 +97,20 @@ detail that makes this obviously not a Sanity problem, and `example.com` /
 `cloudflare.com` / `www.sanity.io` succeeding from the same Worker in the same
 request rules out a blanket egress block.
 
-To reproduce at any time: `curl https://preview.softmess.de/api/diag` (temporary
-route, `site/src/preview-routes/diag.ts`, delete with this item).
+**Mitigated, not fixed.** The preview Worker has been moved off the zone to
+`softmess-preview.9dev.workers.dev`, where egress works, and it renders again.
+The `/api/diag` route and both probe Workers are deleted; the full evidence and
+a redeployable probe live in `docs/CF-525-EVIDENCE.md` and `docs/tlsprobe/`.
+
+Moving cost the Cloudflare Access perimeter, which cannot bind to workers.dev.
+The draft-mode cookie now carries `PREVIEW_DRAFT_SECRET` instead of a bare `1`
+to replace it (`site/src/lib/draft.ts`), and `site/test/live.test.ts` asserts a
+forged cookie is refused.
+
+The zone fault itself is unchanged, so §1.2 stays blocked. Filed with Sanity
+(`docs/SANITY-TICKET.md`) rather than Cloudflare — this account is on a free
+plan with no support channel — with a workerd issue as a second route
+(`docs/WORKERD-ISSUE.md`).
 
 **Before blaming the 525 for the preview pages' 500, redeploy.** The preview
 Worker was being deployed with no `SANITY_PROJECT_ID`: the adapter-generated

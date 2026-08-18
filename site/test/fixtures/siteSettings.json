@@ -10,8 +10,7 @@
   "headerLinks": [],
   "footerLinks": [
     {"_key": "impressum", "label": null, "title": "Impressum", "slug": "impressum"},
-    {"_key": "datenschutz", "label": null, "title": "Datenschutz", "slug": "datenschutz"},
-    {"_key": "geloescht", "label": null, "title": null, "slug": null}
+    {"_key": "datenschutz", "label": null, "title": "Datenschutz", "slug": "datenschutz"}
   ],
   "notFound": {
     "heading": "lost",

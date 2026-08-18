@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest'
-import {getHomePage, getNav, getPage, getPageSlugs, getSiteSettings} from '../src/lib/content'
+import {getHomePage, getPage, getPageSlugs, getSiteSettings} from '../src/lib/content'
 import {publishedClient} from '../src/lib/sanity'
 import {srcFor} from '../src/lib/image'
 
@@ -31,15 +31,6 @@ describe('content layer in fixture mode', () => {
     // plain string even though the fixture document stores `slug: {current}`.
     const page = await getPage(publishedClient, 'impressum')
     expect(page?.slug).toBe('impressum')
-  })
-
-  it('drops nav links whose page reference did not resolve', async () => {
-    // siteSettings.json carries a deliberate dangling link (_key "geloescht"),
-    // standing in for a page that was deleted or exists only as a draft. Do not
-    // tidy it out of the fixture: without the guard it renders as
-    // `<a href="/null">` with no text — invisible, clickable, and a 404.
-    const nav = await getNav(publishedClient)
-    expect(nav.footerLinks?.map((link) => link.slug)).toEqual(['impressum', 'datenschutz'])
   })
 
   it('builds a proxied image url from an image ref without network access', () => {

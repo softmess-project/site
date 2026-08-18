@@ -8,12 +8,13 @@ import {structure} from './structure'
 import {resolve} from './presentation/resolve'
 import {SINGLETON_TYPES} from './lib/singletons'
 
-// Local dev is the default on purpose, not by oversight: the deployed preview
-// Worker 500s because subrequests from the softmess.de zone to api.sanity.io
-// come back HTTP 525 (see docs/BACKLOG.md §4.1 — measured as zone-scoped, not a
-// code fault). `pnpm dev` puts the site on :4321 and keeps editing usable.
-// CI overrides this with the SANITY_STUDIO_PREVIEW_ORIGIN repository variable.
-const previewOrigin = process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? 'http://localhost:4321'
+// Local dev is the default so a Studio run from a checkout talks to the site
+// running beside it (`pnpm dev` puts it on :4321). The deployed Studio gets the
+// real preview origin from the SANITY_STUDIO_PREVIEW_ORIGIN repository
+// variable, which must match the Worker's workers.dev hostname — the preview
+// Worker cannot live on the softmess.de zone (docs/CF-525-EVIDENCE.md).
+const previewOrigin =
+  process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? 'http://localhost:4321'
 
 export default defineConfig({
   name: 'default',
@@ -31,7 +32,7 @@ export default defineConfig({
     structureTool({structure}),
     presentationTool({
       resolve,
-      allowOrigins: ['https://preview.softmess.de', 'http://localhost:4321'],
+      allowOrigins: ['https://softmess-preview.9dev.workers.dev', 'http://localhost:4321'],
       previewUrl: {
         initial: previewOrigin,
         previewMode: {enable: '/api/draft-mode/enable'},

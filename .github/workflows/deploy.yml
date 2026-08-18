@@ -108,8 +108,9 @@ jobs:
       - run: pnpm build:studio
         env:
           # Which origin Presentation mode iframes. Held as a repository variable
-          # rather than hard-coded so it can be repointed without a commit —
-          # relevant while the preview Worker's egress problem is open (see
-          # docs/BACKLOG.md §4.1). Falls back to the deployed host.
-          SANITY_STUDIO_PREVIEW_ORIGIN: ${{ vars.SANITY_STUDIO_PREVIEW_ORIGIN || 'https://preview.softmess.de' }}
+          # rather than hard-coded so it can be repointed without a commit. The
+          # fallback is the preview Worker's workers.dev hostname: it cannot run
+          # on the softmess.de zone, where every subrequest to api.sanity.io
+          # comes back 525 (docs/CF-525-EVIDENCE.md).
+          SANITY_STUDIO_PREVIEW_ORIGIN: ${{ vars.SANITY_STUDIO_PREVIEW_ORIGIN || 'https://softmess-preview.9dev.workers.dev' }}
       - run: pnpm --filter studio exec wrangler deploy --config wrangler.jsonc

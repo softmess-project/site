@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest'
+import {vercelStegaCleanAll} from '@sanity/client/stega'
 
 // Assertions that can only be made against deployed hosts, so they cannot live
 // in the offline `pnpm verify`. Skipped unless LIVE=1, which is what
@@ -8,7 +9,9 @@ import {describe, expect, it} from 'vitest'
 // of the test output can see the live gate exists.
 const LIVE = process.env.LIVE === '1'
 
-const PREVIEW_URL = (process.env.PREVIEW_URL ?? 'https://preview.softmess.de').replace(/\/$/, '')
+const PREVIEW_URL = (
+  process.env.PREVIEW_URL ?? 'https://softmess-preview.9dev.workers.dev'
+).replace(/\/$/, '')
 
 // The public site sits behind Cloudflare Access, so an unauthenticated request
 // is answered with a redirect to a login page rather than the site. Its checks
@@ -23,61 +26,80 @@ const SITE_URL = process.env.SITE_URL?.replace(/\/$/, '')
 // deploy — and a live gate that cries wolf is a live gate nobody reads.
 const PROXIED = process.env.PROXY_IMAGES === '1'
 
-// @vercel/stega hides its payload in Unicode tag characters (U+E0000–U+E007F),
-// which is what makes click-to-edit overlays possible. A published response
-// containing any of them means draft-only data reached a visitor.
-const STEGA = /[\u{E0000}-\u{E007F}]/gu
-
+// Stega hides its payload in the string content itself, and the encoding the
+// library uses is its own business — it is currently a run of zero-width
+// characters (U+200B/200C/200D/FEFF), and it used to be Unicode tag characters
+// (U+E0000–U+E007F). This file hard-coded the tag range, so once the library
+// moved every assertion below silently passed on any input, leak or not.
+// Asking the library to strip its own markers keeps the detector correct
+// across that change and the next one: whatever it removes was stega.
 function stegaCount(html: string): number {
-  return html.match(STEGA)?.length ?? 0
+  return html.length - vercelStegaCleanAll(html).length
 }
 
-// Cloudflare Access fronts the preview host, which is what makes the draft
-// cookie's bare `1` safe: an anonymous request never reaches the Worker, so
-// the cookie gates published-vs-draft for people already through the
-// perimeter rather than gating the drafts themselves.
+// The preview Worker runs on workers.dev, where Cloudflare Access cannot reach
+// it — Access applications bind to hostnames in a zone you control. Nothing
+// fronts this Worker, so the draft-mode cookie is the whole gate, and it
+// carries PREVIEW_DRAFT_SECRET rather than a guessable `1` (src/lib/draft.ts).
 //
-// Everything behind that perimeter therefore needs a session. Set
-// PREVIEW_COOKIE to a `CF_Authorization=…` cookie — copy it from a browser
-// that has logged in — to run those assertions; without it they skip and only
-// the gate itself is checked.
-const PREVIEW_COOKIE = process.env.PREVIEW_COOKIE
+// These assertions therefore need no session. Set PREVIEW_DRAFT_SECRET to the
+// deployed Worker's secret to additionally prove the positive case — that a
+// correct cookie really does turn drafts on — which otherwise skips.
+const DRAFT_SECRET = process.env.PREVIEW_DRAFT_SECRET
 
-function asEditor(path: string) {
+function get(path: string, cookie?: string) {
   return fetch(`${PREVIEW_URL}${path}`, {
     redirect: 'manual',
-    headers: PREVIEW_COOKIE ? {cookie: PREVIEW_COOKIE} : {},
+    headers: cookie ? {cookie} : {},
   })
 }
 
 describe.skipIf(!LIVE)('the deployed preview Worker', () => {
-  it('is gated by Cloudflare Access', async () => {
-    // Deliberately unauthenticated, whatever PREVIEW_COOKIE holds. This is the
-    // assertion that would catch the gate being removed, which is the only
-    // thing standing between the internet and every unpublished draft.
-    const response = await fetch(`${PREVIEW_URL}/`, {redirect: 'manual'})
-    expect(response.status, 'preview host served an anonymous request').not.toBe(200)
-    expect(response.headers.get('location') ?? '').toContain('cloudflareaccess.com')
-  })
-
-  it.skipIf(!PREVIEW_COOKIE)('renders for an authenticated editor', async () => {
-    const response = await asEditor('/')
+  it('renders, which is what the zone could not do', async () => {
+    // A Worker on the softmess.de zone answered 500 here, because every
+    // api.sanity.io subrequest came back 525. This asserts the move off the
+    // zone actually fixed that, not just that the Worker deployed.
+    const response = await get('/')
     expect(response.status, await response.text().catch(() => '')).toBe(200)
   })
 
-  it.skipIf(!PREVIEW_COOKIE)('leaks no draft content without the draft cookie', async () => {
-    // Past the perimeter but without the draft cookie, the answer must still be
-    // published content only.
-    expect(stegaCount(await (await asEditor('/')).text())).toBe(0)
+  it('serves published content to an anonymous visitor', async () => {
+    expect(stegaCount(await (await get('/')).text())).toBe(0)
   })
 
-  it.skipIf(!PREVIEW_COOKIE)('refuses a draft-mode handshake with no secret', async () => {
-    expect((await asEditor('/api/draft-mode/enable')).status).toBe(401)
+  // The regression that matters most. Before the cookie carried a secret, this
+  // exact request returned every unpublished draft, and only Cloudflare Access
+  // stood in front of it. On workers.dev there is no perimeter, so if this ever
+  // starts passing draft content the drafts are simply public.
+  it('refuses a forged draft cookie', async () => {
+    const response = await get('/', 'sanity-draft-mode=1')
+    expect(response.status).toBe(200)
+    expect(stegaCount(await response.text()), 'forged cookie returned draft content').toBe(0)
   })
 
-  it.skipIf(!PREVIEW_COOKIE)('sets no draft cookie on a rejected handshake', async () => {
-    const response = await asEditor('/api/draft-mode/enable')
+  it('refuses a draft cookie holding a wrong secret', async () => {
+    const response = await get('/', 'sanity-draft-mode=not-the-secret')
+    expect(stegaCount(await response.text())).toBe(0)
+  })
+
+  it('refuses a draft-mode handshake with no secret', async () => {
+    expect((await get('/api/draft-mode/enable')).status).toBe(401)
+  })
+
+  it('sets no draft cookie on a rejected handshake', async () => {
+    const response = await get('/api/draft-mode/enable')
     expect(response.headers.get('set-cookie') ?? '').not.toContain('sanity-draft-mode')
+  })
+
+  it.skipIf(!DRAFT_SECRET)('renders drafts for the real secret', async () => {
+    // The counterpart to the forged-cookie case: proves the gate is a gate and
+    // not simply broken shut, which would pass every assertion above.
+    const html = await (await get('/', `sanity-draft-mode=${DRAFT_SECRET}`)).text()
+    expect(stegaCount(html), 'the correct cookie did not enable draft mode').toBeGreaterThan(0)
+  })
+
+  it('exposes no diagnostics route', async () => {
+    expect((await get('/api/diag')).status).toBe(404)
   })
 })
 
@@ -87,7 +109,7 @@ describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
     // cdn.sanity.io is the one third-party origin the unproxied build is
     // allowed to name, and with the flag off it is expected to.
     if (PROXIED) expect(html).not.toContain('cdn.sanity.io')
-    expect(html).not.toContain('preview.softmess.de')
+    expect(html).not.toContain('softmess-preview.9dev.workers.dev')
   })
 
   it('ships no stega markers', async () => {

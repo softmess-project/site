@@ -34,5 +34,16 @@
     "directory": "./dist/client",
     "binding": "ASSETS",
   },
-  "routes": [{"pattern": "preview.softmess.de", "custom_domain": true}],
+  // workers.dev, not a custom domain on the zone. A Worker on any softmess.de
+  // hostname gets HTTP 525 on every subrequest to api.sanity.io, so the preview
+  // could not render at all there (docs/CF-525-EVIDENCE.md). The cost is the
+  // Cloudflare Access perimeter, which cannot bind to workers.dev — the
+  // draft-mode cookie carries PREVIEW_DRAFT_SECRET instead of a bare `1` to
+  // make up for it (src/lib/draft.ts).
+  "workers_dev": true,
+  // Per-version preview URLs are on by default once workers_dev is set, which
+  // would publish a second, unversioned hostname for every deploy. The draft
+  // gate is the cookie, not the hostname, so these are not a hole — but the
+  // Studio only ever iframes the canonical host, so they are pure surface.
+  "preview_urls": false,
 }

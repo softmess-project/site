@@ -5,7 +5,7 @@ State after the backlog-clearing pass on `feat/page-builder`.
 `pnpm verify` is green: 18 studio tests, 49 site tests, 12 skipped (the live gate).
 `pnpm build:site:deploy` **passes** — the real-content gate no longer blocks.
 
-Two things are open, and neither is a code problem.
+One thing is open, and it is not a code problem.
 
 **§1.1 — the zone cannot reach some hosts over TLS.** Every Worker on a custom
 domain in the `softmess.de` zone gets HTTP 525 on outbound TLS to `api.sanity.io`,
@@ -14,11 +14,10 @@ of them. The preview Worker has moved to workers.dev to get around it; the image
 proxy still ships dormant behind a flag (§1.2), because it has to be same-origin
 on `softmess.de`. Filed with Sanity, awaiting a reply.
 
-**§1.3 — publishing does not deploy the site yet.** Deploys run from
-`.github/workflows/deploy.yml`, which handles all three Workers and works;
-Workers Builds is dropped, having never produced a deployment. What is left is
-repointing the Sanity publish webhook at GitHub's `repository_dispatch`, which
-§1.3 spells out and which is now proven to trigger a deploy.
+**§1.3 — resolved.** Publishing site content now deploys the site: the Sanity
+webhook dispatches `deploy.yml`, verified end to end. Workers Builds is dropped,
+having never produced a deployment; its now-unreferenced deploy hook is the one
+piece of dashboard cleanup left.
 
 ---
 
@@ -150,7 +149,7 @@ shape either way, including which origins its third-party allowlist permits.
 the build environment, redeploy, run `SITE_URL=… pnpm verify:live` to confirm
 `/cdn` serves images, and then delete the privacy-policy paragraph in §1.5.
 
-### 1.3 Publishing does not deploy the site yet — one webhook away
+### 1.3 Publishing deploys the site — resolved
 
 **Decision: GitHub Actions deploys all three Workers. Workers Builds is dropped.**
 
@@ -174,30 +173,31 @@ strictly better than Workers Builds here:
 - Its one real advantage, publish→rebuild without CI, is already covered by
   `repository_dispatch`.
 
-**`repository_dispatch` is proven.** It was previously written off as "nothing
-fires it"; a manual dispatch on 2026-08-18 triggered `deploy-site` and deployed
-from `main`. `deploy.yml` is on the default branch, which is what that path
-requires.
-
-**What is left:** repoint the Sanity webhook `LRnvr01wjiGvxTgh` (still named
-`Cloudflare`) from the Workers Builds deploy hook to GitHub, then delete the
-deploy hook and the Workers Builds config. The rule and filter below are already
-correct and carry over unchanged.
+**Done, and verified end to end on 2026-08-18.** Webhook `LRnvr01wjiGvxTgh`,
+renamed `GitHub Actions`, now posts to
+`https://api.github.com/repos/softmess-project/site/dispatches`:
 
 | field | value |
 | --- | --- |
-| URL | `https://api.github.com/repos/softmess-project/site/dispatches` |
 | Method | `POST` |
-| Projection | `{"event_type": "sanity-publish"}` |
+| `rule.projection` | `{"event_type": "sanity-publish"}` |
 | Header | `Accept: application/vnd.github+json` |
-| Header | `Authorization: Bearer <token>` |
+| Header | `Authorization: Bearer <fine-grained PAT>` |
+| `dataset` | `production` |
 
-The token needs only permission to POST that one endpoint — a fine-grained PAT
-scoped to `softmess-project/site` with **Contents: read and write**, not a
-personal classic token. It is stored in the webhook's headers, where Sanity does
-not read it back, so record it somewhere you can rotate from.
+The payload projection lives at **`rule.projection`**, not the top-level
+`projection` field — that one validates as an object with no permitted keys and
+rejects a GROQ string on every API version. Same trap as `rule.filter` below.
 
-The type filter the old backlog asked for is already live on that webhook:
+A content-identical mutation to `siteSettings` produced: webhook delivery
+`204` (GitHub's success code for `dispatches`; the old Cloudflare hook returned
+`200`, so the two are distinguishable in `sanity hooks logs`), a
+`repository_dispatch` run two seconds later, and a successful `deploy-site`.
+
+The token is a fine-grained PAT scoped to this repo. Sanity does not read header
+values back, so rotating means replacing the header, not recovering it.
+
+The type filter the old backlog asked for is live on that webhook:
 
 ```groq
 _type in ["homePage", "page", "siteSettings"]
@@ -211,11 +211,14 @@ used to trigger a build for nothing. `includeDrafts: false` was already correct.
 
 `.github/workflows/deploy.yml` serves both paths: `workflow_dispatch` with a
 target of all/site/preview/studio for manual deploys, and
-`repository_dispatch: [sanity-publish]` on `deploy-site` for the publish hook
-above.
+`repository_dispatch: [sanity-publish]` on `deploy-site` for the publish hook.
 
-Still worth a thought, not done: the hook's `dataset` is `"*"`. With one dataset
-that is harmless, but a future staging dataset would trigger production deploys.
+`dataset` is now `production` rather than `*`, so a future staging dataset will
+not trigger production deploys.
+
+**Left over:** the Cloudflare Workers Builds deploy hook
+(`daf1fb82-9012-42a5-8718-f3a974457a0b`) and whatever build config sits behind it
+are now unreferenced and should be deleted in the dashboard.
 
 ### 1.4 The imprint address, and a DPA with Sanity
 

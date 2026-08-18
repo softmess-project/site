@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 import type {APIContext, AstroCookies, MiddlewareNext} from 'astro'
 import {onRequest} from '../src/middleware'
 import {DRAFT_COOKIE} from '../src/lib/draft'
@@ -14,6 +14,17 @@ import {publishedClient} from '../src/lib/sanity'
 // vitest (unlike under Astro's build, where it's statically inlined), so the
 // middleware's actual branching runs for real.
 ;(import.meta.env as {PREVIEW?: boolean}).PREVIEW = true
+
+const SECRET = 'test-secret-value'
+
+// The secret reaches the middleware through process.env, which nodejs_compat
+// populates from the Worker's bindings on the deployed preview.
+beforeEach(() => {
+  process.env.PREVIEW_DRAFT_SECRET = SECRET
+})
+afterEach(() => {
+  delete process.env.PREVIEW_DRAFT_SECRET
+})
 
 function fakeContext(cookieValue?: string): APIContext {
   const cookies = {
@@ -37,8 +48,8 @@ function trackedNext() {
 }
 
 describe('draft-mode middleware', () => {
-  it('grants a drafts+stega client and marks draft mode when the cookie is present', () => {
-    const context = fakeContext('1')
+  it('grants a drafts+stega client and marks draft mode when the cookie matches the secret', () => {
+    const context = fakeContext(SECRET)
     const {next, result, callCount} = trackedNext()
 
     const returned = onRequest(context, next)
@@ -73,5 +84,43 @@ describe('draft-mode middleware', () => {
     expect(context.locals.sanity).toBe(publishedClient)
     expect(callCount()).toBe(1)
     expect(returned).toBe(result)
+  })
+
+  // The value the cookie used to carry before it was secret-backed. Anyone can
+  // set it by hand, which is exactly what the perimeter used to cover for, so
+  // this is the regression that matters most now that the host is public.
+  it('treats the old bare `1` cookie as absent', () => {
+    const context = fakeContext('1')
+    const {next} = trackedNext()
+
+    onRequest(context, next)
+
+    expect(context.locals.draft).toBe(false)
+    expect(context.locals.sanity).toBe(publishedClient)
+  })
+
+  // Fail closed: an unconfigured secret must never mean "everything is a draft".
+  it('refuses draft mode when no secret is configured', () => {
+    delete process.env.PREVIEW_DRAFT_SECRET
+    const context = fakeContext('1')
+    const {next} = trackedNext()
+
+    onRequest(context, next)
+
+    expect(context.locals.draft).toBe(false)
+    expect(context.locals.sanity).toBe(publishedClient)
+  })
+
+  // An empty binding is the shape a missing `wrangler secret put` actually
+  // takes, and it must not match an empty cookie.
+  it('refuses draft mode when the secret is empty', () => {
+    process.env.PREVIEW_DRAFT_SECRET = ''
+    const context = fakeContext('')
+    const {next} = trackedNext()
+
+    onRequest(context, next)
+
+    expect(context.locals.draft).toBe(false)
+    expect(context.locals.sanity).toBe(publishedClient)
   })
 })

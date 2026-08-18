@@ -14,17 +14,29 @@ export const GET: APIRoute = async ({request, cookies, redirect}) => {
     return new Response('Ungültiges oder abgelaufenes Vorschau-Secret', {status: 401})
   }
 
+  // Checked after the handshake, not before, so a caller without a valid Sanity
+  // secret learns nothing about whether the deployment is configured.
+  const secret = process.env.PREVIEW_DRAFT_SECRET
+  if (!secret) {
+    return new Response('Vorschau ist nicht konfiguriert', {status: 503})
+  }
+
   // The preview renders inside an iframe on the Studio's origin, so the cookie
   // has to survive being set in a framed context. SameSite=None is what allows
   // that, but the spec requires Secure alongside it — and Safari drops a Secure
   // cookie over plain http, localhost included, so hard-coding both silently
   // broke local preview there: the redirect happened and the cookie vanished.
-  // Over http we therefore fall back to Lax, which is sufficient because Studio
-  // and preview are same-site in both real setups (localhost differs only by
-  // port, and preview/studio.softmess.de share a registrable domain).
+  // Over http we therefore fall back to Lax, which is sufficient because the
+  // only http setup is local, where Studio and preview differ only by port and
+  // are therefore same-site. Deployed, they are genuinely cross-site — the
+  // Worker is on workers.dev and the Studio on softmess.de — so None is not a
+  // convenience there but the only value that works.
   const secure = new URL(request.url).protocol === 'https:'
 
-  cookies.set(DRAFT_COOKIE, '1', {
+  // The value is the secret itself: on workers.dev there is no perimeter in
+  // front of this Worker, so the cookie is what separates a visitor from every
+  // unpublished draft. See src/lib/draft.ts.
+  cookies.set(DRAFT_COOKIE, secret, {
     path: '/',
     httpOnly: true,
     sameSite: secure ? 'none' : 'lax',

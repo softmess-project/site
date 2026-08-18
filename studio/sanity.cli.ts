@@ -5,10 +5,6 @@ export default defineCliConfig({
     projectId: '85i3osnk',
     dataset: 'production',
   },
-  app: {
-    organizationId: 'oE4RZJUDc',
-    title: 'Softmess',
-  },
   deployment: {
     appId: 'owg684phbh0qnz6fltlf4mt4',
 

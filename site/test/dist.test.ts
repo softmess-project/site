@@ -253,7 +253,7 @@ describe('page builder', () => {
 
   it('keeps the preview hostname out of the static build', () => {
     for (const page of PAGES) {
-      expect(readFileSync(join(DIST, page), 'utf8')).not.toContain('preview.softmess.de')
+      expect(readFileSync(join(DIST, page), 'utf8')).not.toContain('softmess-preview.9dev.workers.dev')
     }
   })
 })

@@ -12,7 +12,8 @@ import {SINGLETON_TYPES} from './lib/singletons'
 // running beside it (`pnpm dev` puts it on :4321). The deployed Studio gets the
 // real preview origin from the SANITY_STUDIO_PREVIEW_ORIGIN repository
 // variable, which must match the Worker's workers.dev hostname — the preview
-// Worker cannot live on the softmess.de zone (docs/CF-525-EVIDENCE.md).
+// Worker cannot live on the softmess.de zone, where its subrequests to
+// api.sanity.io come back 525.
 const previewOrigin =
   process.env.SANITY_STUDIO_PREVIEW_ORIGIN ?? 'http://localhost:4321'
 

@@ -36,7 +36,7 @@
   },
   // workers.dev, not a custom domain on the zone. A Worker on any softmess.de
   // hostname gets HTTP 525 on every subrequest to api.sanity.io, so the preview
-  // could not render at all there (docs/CF-525-EVIDENCE.md). The cost is the
+  // could not render at all there. The cost is the
   // Cloudflare Access perimeter, which cannot bind to workers.dev — the
   // draft-mode cookie carries PREVIEW_DRAFT_SECRET instead of a bare `1` to
   // make up for it (src/lib/draft.ts).

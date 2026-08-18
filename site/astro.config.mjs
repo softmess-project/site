@@ -49,8 +49,8 @@ const previewRoutes = {
 export default defineConfig({
   // The preview Worker runs on workers.dev, not on the zone: a Worker on a
   // custom domain in the softmess.de zone cannot reach api.sanity.io at all
-  // (HTTP 525 on every subrequest — docs/CF-525-EVIDENCE.md). workers.dev is
-  // not on the zone and is unaffected.
+  // (HTTP 525 on every subrequest). workers.dev is not on the zone and is
+  // unaffected.
   site: preview ? 'https://softmess-preview.9dev.workers.dev' : 'https://softmess.de',
   trailingSlash: 'never',
   // Nothing on this site has a session — no forms, no accounts, no client JS.

@@ -111,6 +111,6 @@ jobs:
           # rather than hard-coded so it can be repointed without a commit. The
           # fallback is the preview Worker's workers.dev hostname: it cannot run
           # on the softmess.de zone, where every subrequest to api.sanity.io
-          # comes back 525 (docs/CF-525-EVIDENCE.md).
+          # comes back 525.
           SANITY_STUDIO_PREVIEW_ORIGIN: ${{ vars.SANITY_STUDIO_PREVIEW_ORIGIN || 'https://softmess-preview.9dev.workers.dev' }}
       - run: pnpm --filter studio exec wrangler deploy --config wrangler.jsonc

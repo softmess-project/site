@@ -97,20 +97,21 @@ detail that makes this obviously not a Sanity problem, and `example.com` /
 `cloudflare.com` / `www.sanity.io` succeeding from the same Worker in the same
 request rules out a blanket egress block.
 
-**Mitigated, not fixed.** The preview Worker has been moved off the zone to
-`softmess-preview.9dev.workers.dev`, where egress works, and it renders again.
-The `/api/diag` route and both probe Workers are deleted; the full evidence and
-a redeployable probe live in `docs/CF-525-EVIDENCE.md` and `docs/tlsprobe/`.
+**Mitigated, not fixed.** The preview Worker now runs on
+`softmess-preview.9dev.workers.dev`, which is not on the zone and reaches
+api.sanity.io normally, so previews render again. The `/api/diag` route is gone
+with the investigation that needed it.
 
 Moving cost the Cloudflare Access perimeter, which cannot bind to workers.dev.
-The draft-mode cookie now carries `PREVIEW_DRAFT_SECRET` instead of a bare `1`
-to replace it (`site/src/lib/draft.ts`), and `site/test/live.test.ts` asserts a
-forged cookie is refused.
+The draft-mode cookie carries `PREVIEW_DRAFT_SECRET` instead of a bare `1` to
+replace it (`site/src/lib/draft.ts`), and `site/test/live.test.ts` asserts both
+that a forged cookie is refused and that the real secret is honoured.
 
-The zone fault itself is unchanged, so §1.2 stays blocked. Filed with Sanity
-(`docs/SANITY-TICKET.md`) rather than Cloudflare — this account is on a free
-plan with no support channel — with a workerd issue as a second route
-(`docs/WORKERD-ISSUE.md`).
+Filed with Sanity — this account has no Cloudflare support channel, and their
+API endpoints not offering `X25519MLKEM768` is the property that correlates
+with the failure. Awaiting a response. The zone fault itself is unchanged, so
+§1.2 stays blocked; if it is ever fixed, moving back to `preview.softmess.de`
+is a one-line change in `site/wrangler.preview.jsonc` plus the Studio origin.
 
 **Before blaming the 525 for the preview pages' 500, redeploy.** The preview
 Worker was being deployed with no `SANITY_PROJECT_ID`: the adapter-generated

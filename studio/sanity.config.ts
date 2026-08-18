@@ -23,9 +23,12 @@ import {SINGLETON_TYPES} from './lib/singletons'
 // silently shipped a Studio whose Presentation pane opened localhost:4321
 // against the production Studio. import.meta.env is the mechanism Sanity
 // documents; process.env stays as a fallback so neither build can regress.
-const env = import.meta.env as unknown as Record<string, string | undefined>
+// `import.meta` is typed by the tsconfig's module setting, which does not carry
+// Vite's `env`, so reach it through a cast rather than pulling vite/client types
+// into a config that otherwise needs none.
+const buildEnv = (import.meta as unknown as {env?: Record<string, string | undefined>}).env
 const previewOrigin =
-  env?.SANITY_STUDIO_PREVIEW_ORIGIN ??
+  buildEnv?.SANITY_STUDIO_PREVIEW_ORIGIN ??
   process.env.SANITY_STUDIO_PREVIEW_ORIGIN ??
   'http://localhost:4321'
 

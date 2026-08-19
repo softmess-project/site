@@ -1,0 +1,73 @@
+version: 2
+
+# One npm entry, not three. There is a single pnpm-lock.yaml at the repo root
+# and Dependabot reads pnpm-workspace.yaml next to it, so `directory: /` already
+# covers site/ and studio/. Separate entries per workspace package would have
+# every PR rewriting the same lockfile and conflicting with each other.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Berlin
+
+    # Never propose a release younger than three days: long enough for a
+    # compromised publish to be yanked before it reaches the lockfile. This
+    # deliberately does not apply to security updates — those still open
+    # immediately, which is the point of having the cooldown at all.
+    # Complements pnpm's own install-time `minimumReleaseAge` (see
+    # `minimumReleaseAgeExclude` in pnpm-workspace.yaml).
+    cooldown:
+      default-days: 3
+
+    # A dependency lands in the FIRST group it matches, so `studio` must come
+    # before the two catch-alls — `sanity` and `styled-components` are
+    # production dependencies and would otherwise be swallowed by `runtime`.
+    # The site's Sanity packages (@sanity/client, @sanity/astro,
+    # @sanity/image-url, @sanity/preview-url-secret) are intentionally *not*
+    # listed here: they ship to visitors and belong in `runtime`.
+    #
+    # Shared toolchain (react, typescript, vitest, wrangler) resolves to one
+    # version across the workspace anyway, so it cannot be split per package —
+    # it falls into runtime or dev-tooling by its dependency type.
+    groups:
+      studio:
+        patterns:
+          - sanity
+          - '@sanity/icons'
+          - '@sanity/locale-de-de'
+          - '@sanity/vision'
+          - '@sanity/eslint-config-studio'
+          - styled-components
+      runtime:
+        dependency-type: production
+      dev-tooling:
+        dependency-type: development
+
+    # Exactly the three groups above: every dependency is production or
+    # development, so nothing can spill out into an ungrouped fourth PR.
+    open-pull-requests-limit: 3
+
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # Actions are pinned to commit SHAs with a trailing `# vN` comment (see the
+  # note in verify.yml). Dependabot rewrites the SHA and that comment together,
+  # which is the only maintainable way to keep pinned actions current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 3
+    groups:
+      actions:
+        patterns:
+          - '*'
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: chore
+      include: scope

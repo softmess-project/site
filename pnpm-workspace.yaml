@@ -2,6 +2,28 @@ packages:
   - site
   - studio
 
+# Dependabot alerts against transitive dependencies that no parent will move on
+# its own: @vercel/frameworks pins js-yaml and smol-toml to exact versions,
+# @module-federation/dts-plugin pins undici to exactly 7.28.0, and typeid-js
+# (already at its latest, 1.2.0) declares uuid ^10. All four arrive under
+# @sanity/cli, so nothing here reaches visitors — the site ships no client
+# JavaScript and the CLI is not in any Worker or Studio bundle.
+#
+# Every override is scoped to its parent on purpose. A bare `js-yaml` override
+# would drag astro and eslint from 4.x back to 3.x, which is a worse bug than
+# the advisory. smol-toml, undici and uuid resolve to versions the tree already
+# contains elsewhere, so those three dedupe rather than add a copy.
+overrides:
+  # GHSA-mh29-5h37-fv8m, GHSA-h67p-54hq-rp68, GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj
+  '@vercel/frameworks>js-yaml': '^3.15.1'
+  # GHSA-v3rj-xjv7-4jmq
+  '@vercel/frameworks>smol-toml': '^1.8.0'
+  # GHSA-4cwx-7wf7-3272 and four more; dts-plugin pins undici at exactly 7.28.0
+  '@module-federation/dts-plugin>undici': '^7.29.0'
+  # GHSA-w5hq-g745-h8pq. A major for typeid-js, which imports only `stringify`
+  # and `v7` — both still exported by uuid 11.
+  'typeid-js>uuid': '^11.1.1'
+
 peerDependencyRules:
   allowedVersions:
     '@sanity/astro>@sanity/client': '8'

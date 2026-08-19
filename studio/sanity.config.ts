@@ -26,11 +26,34 @@ import {SINGLETON_TYPES} from './lib/singletons'
 // `import.meta` is typed by the tsconfig's module setting, which does not carry
 // Vite's `env`, so reach it through a cast rather than pulling vite/client types
 // into a config that otherwise needs none.
-const buildEnv = (import.meta as unknown as {env?: Record<string, string | undefined>}).env
-const previewOrigin =
-  buildEnv?.SANITY_STUDIO_PREVIEW_ORIGIN ??
-  process.env.SANITY_STUDIO_PREVIEW_ORIGIN ??
-  'http://localhost:4321'
+const buildEnv = (
+  import.meta as unknown as {env?: {DEV?: boolean; SANITY_STUDIO_PREVIEW_ORIGIN?: string}}
+).env
+
+/** Falling back to localhost outside dev is what actually broke the deployed
+ *  Studio: `deploy.yml` is the only place SANITY_STUDIO_PREVIEW_ORIGIN is set,
+ *  so a `sanity build` run from anywhere else — a laptop, a manual
+ *  `wrangler deploy` — shipped a Presentation pane that iframed
+ *  http://localhost:4321. That deploys and loads without complaint; the only
+ *  symptom is "Unable to connect to visual editing" in the console, because the
+ *  iframe is either empty or someone's local dev server. Verified against the
+ *  live bundle, which read `{BASE_URL,DEV,MODE,PROD,SSR}.SANITY_STUDIO_PREVIEW_ORIGIN`
+ *  — the key was simply absent — while a build *with* the variable inlines it.
+ *
+ *  So localhost is a dev-only default now. A production build that forgets the
+ *  variable points at the real preview Worker instead of quietly at nothing. */
+export function resolvePreviewOrigin(
+  env: {DEV?: boolean; SANITY_STUDIO_PREVIEW_ORIGIN?: string} | undefined,
+  processOrigin: string | undefined,
+): string {
+  return (
+    env?.SANITY_STUDIO_PREVIEW_ORIGIN ??
+    processOrigin ??
+    (env?.DEV ? 'http://localhost:4321' : 'https://softmess-preview.9dev.workers.dev')
+  )
+}
+
+const previewOrigin = resolvePreviewOrigin(buildEnv, process.env.SANITY_STUDIO_PREVIEW_ORIGIN)
 
 export default defineConfig({
   name: 'default',
@@ -42,7 +65,7 @@ export default defineConfig({
   apps: {
     canvas: {enabled: true},
   },
-  releases: { enabled: false },
+  releases: {enabled: false},
 
   plugins: [
     structureTool({structure}),

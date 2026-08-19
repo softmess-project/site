@@ -218,7 +218,47 @@ not trigger production deploys.
 
 **Left over:** the Cloudflare Workers Builds deploy hook
 (`daf1fb82-9012-42a5-8718-f3a974457a0b`) and whatever build config sits behind it
-are now unreferenced and should be deleted in the dashboard.
+are now unreferenced and should be deleted in the dashboard. While it is still
+connected, the Workers dashboard also *misattributes* version history: it joins
+versions to GitHub commits and credits `b87b3872` to `dependabot[bot]`, where the
+version's own API record reads `author_email: moritz@mazetti.me`.
+
+### 1.3a Add `client_payload` to the webhook projection — one field, and CI is waiting for it
+
+`deploy.yml` now names the publisher in the Cloudflare version message, but only
+if the webhook sends one. Extend the projection at `rule.projection` from
+`{"event_type": "sanity-publish"}` to:
+
+```groq
+{
+  "event_type": "sanity-publish",
+  "client_payload": {
+    "author": identity(),
+    "type": _type,
+    "slug": slug.current
+  }
+}
+```
+
+`identity()` yields a project-scoped user id (`pA22gx9IC`), which
+`deploy-site` resolves through
+`GET api.sanity.io/v2021-06-07/projects/85i3osnk/users/{id}` using the
+`SANITY_API_TOKEN` it already holds. Verified against the live project: that id
+returns `Moritz Mazetti`, and robot ids resolve too. `slug.current` is null on
+the singletons, which is fine — every part is optional and the message degrades
+one piece at a time, from
+`Sanity publish by Moritz Mazetti (page/impressum, 5d86c6f, run 123)` down to
+`Sanity publish (5d86c6f, run 123)`.
+
+**Edit it, do not recreate it.** `sanity hooks` has list, create, delete and
+logs, but no edit verb, and deleting loses the `Authorization: Bearer <PAT>`
+header — Sanity never reads header values back.
+
+Note what this does *not* fix: Cloudflare's "by" column. That is
+`metadata.author_email`, taken from the credential that uploaded the version,
+and an API token carries no user identity, so CI deploys read `by Unknown`
+whatever the message says. Deploying under a user credential instead would make
+CI deploys indistinguishable from local ones, which is worse.
 
 ### 1.4 The imprint address, and a DPA with Sanity
 

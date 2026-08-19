@@ -59,7 +59,56 @@ jobs:
       # site/.wrangler/deploy/config.json whenever a preview build has run in the
       # same workspace, and wrangler follows it by default — which would deploy
       # the SSR preview app to this Worker. Naming the config overrides it.
-      - run: pnpm --filter site exec wrangler deploy --config wrangler.jsonc
+      # --message is the only attribution wrangler can add. Cloudflare derives
+      # the dashboard's "by" column from the credential that uploaded the
+      # version, and an API token carries no user identity, so every CI deploy
+      # renders as "by Unknown" whatever we pass; only a local deploy under an
+      # OAuth login shows a name. Absent a message the row then reads
+      # "Manually deployed", which is precisely wrong for a rebuild a Sanity
+      # publish fired unattended. So the message carries the attribution
+      # instead: which event ran it, and for a publish, who published.
+      #
+      # The publisher arrives as client_payload.author, which is identity() in
+      # the webhook's projection — a project-scoped user id such as pA22gx9IC,
+      # not a name. Resolving it needs the Users API, hence SANITY_API_TOKEN on
+      # this step as well as on the build.
+      #
+      # Every content-derived value is passed through env rather than
+      # interpolated into the script with a ${{ }} expression: a document slug is
+      # editor input, and inlining it would put editor input into a shell command.
+      - name: Deploy
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          AUTHOR_ID: ${{ github.event.client_payload.author }}
+          DOC_TYPE: ${{ github.event.client_payload.type }}
+          DOC_SLUG: ${{ github.event.client_payload.slug }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = repository_dispatch ]; then
+            # Robot ids resolve too — a token publishing reads as, measured,
+            # "Moritz Local Development (Robot)" — but an id no longer in the
+            # project's ACL answers 404, so a failed lookup falls back to the raw
+            # id. That still attributes the deploy, it just cannot name it. Same
+            # shape if the webhook's projection predates client_payload: every
+            # part is optional and the message degrades one piece at a time.
+            who="$AUTHOR_ID"
+            if [ -n "$who" ]; then
+              name=$(curl -sf \
+                -H "Authorization: Bearer $SANITY_API_TOKEN" \
+                "https://api.sanity.io/v2021-06-07/projects/$SANITY_PROJECT_ID/users/$who" \
+                | python3 -c 'import json,sys; b=sys.stdin.read().strip(); print((json.loads(b).get("displayName") or "") if b.startswith("{") else "")' \
+                2>/dev/null || true)
+              who="${name:-$who}"
+            fi
+            detail="${GITHUB_SHA:0:7}, run $GITHUB_RUN_ID"
+            doc="$DOC_TYPE"
+            [ -n "$DOC_SLUG" ] && doc="$DOC_TYPE/$DOC_SLUG"
+            [ -n "$doc" ] && detail="$doc, $detail"
+            message="Sanity publish${who:+ by $who} ($detail)"
+          else
+            message="Manual deploy by $GITHUB_ACTOR (${GITHUB_SHA:0:7}, run $GITHUB_RUN_ID)"
+          fi
+          echo "version message: $message"
+          pnpm --filter site exec wrangler deploy --config wrangler.jsonc --message "$message"
 
   # The SSR preview Worker behind the Studio's Presentation mode.
   deploy-preview:
@@ -85,7 +134,9 @@ jobs:
       # astro.config.mjs) and points the deploy redirect at it. Passing
       # --config wrangler.preview.jsonc instead uploads entry.mjs without its
       # chunks: the deploy reports success and every route then 404s.
-      - run: pnpm --filter site exec wrangler deploy
+      - run: >-
+          pnpm --filter site exec wrangler deploy
+          --message "Manual deploy by $GITHUB_ACTOR (${GITHUB_SHA:0:7}, run $GITHUB_RUN_ID)"
 
   # The Studio. Content-independent, so it only needs deploying when its own
   # code or schema changes.
@@ -113,4 +164,6 @@ jobs:
           # on the softmess.de zone, where every subrequest to api.sanity.io
           # comes back 525.
           SANITY_STUDIO_PREVIEW_ORIGIN: ${{ vars.SANITY_STUDIO_PREVIEW_ORIGIN || 'https://softmess-preview.9dev.workers.dev' }}
-      - run: pnpm --filter studio exec wrangler deploy --config wrangler.jsonc
+      - run: >-
+          pnpm --filter studio exec wrangler deploy --config wrangler.jsonc
+          --message "Manual deploy by $GITHUB_ACTOR (${GITHUB_SHA:0:7}, run $GITHUB_RUN_ID)"

@@ -1,6 +1,7 @@
 import {readFileSync, existsSync} from 'node:fs'
 import {join} from 'node:path'
 import {parseHTML} from 'linkedom'
+import {Spec, Validation} from '@cyclonedx/cyclonedx-library'
 import {beforeAll, describe, expect, it} from 'vitest'
 
 // Defaults to the fixture build for the offline/no-secrets path. CI re-runs
@@ -452,5 +453,69 @@ describe('crawler directives', () => {
         'max-image-preview:large',
       )
     }
+  })
+})
+
+describe('software bill of materials', () => {
+  // /.well-known/sbom is the URI RFC 9472 registers. That RFC defines discovery
+  // only and says nothing about the format, so conformance here is CycloneDX's
+  // — asserted against CycloneDX's own published schema rather than against
+  // this suite's idea of it.
+  const bom = () => readFileSync(join(DIST, '.well-known', 'sbom'), 'utf8')
+
+  it('validates against the official CycloneDX 1.6 schema', async () => {
+    // The one assertion that is not a restatement of the generator. It is what
+    // caught `web-app` as a component type: it reads like the obvious value and
+    // is not in the classification enum.
+    const validator = new Validation.JsonStrictValidator(Spec.Version.v1dot6)
+    expect(await validator.validate(bom())).toBeNull()
+  })
+
+  it('describes the site itself, stamped with the build time', () => {
+    const {metadata, specVersion} = JSON.parse(bom())
+    // Pinned to the schema the test above validates against, so the two cannot
+    // drift into validating 1.6 rules against a document claiming another.
+    expect(specVersion).toBe(Spec.Version.v1dot6)
+    expect(metadata.component.name).toBe('softmess.de')
+    expect(new Date(metadata.timestamp).getTime()).not.toBeNaN()
+  })
+
+  it('gives every component a resolved version and a matching purl', () => {
+    const doc = JSON.parse(bom())
+    const all = [...doc.components, ...doc.metadata.tools.components]
+    expect(all.length).toBeGreaterThan(0)
+    for (const c of all) {
+      // A range like ^5.3.0 is a fact about package.json, not about the build.
+      expect(c.version, c.name).toMatch(/^\d+\.\d+\.\d+/)
+      expect(c.purl, c.name).toBe(`pkg:npm/${c.name.replace('@', '%40')}@${c.version}`)
+    }
+    // Pinned once as a literal, because the assertion above encodes the purl
+    // the same way the generator does and would agree with it either way.
+    expect(all.map((c: {purl: string}) => c.purl)).toContain('pkg:npm/%40fontsource/outfit@5.3.0')
+  })
+
+  it('claims exactly the font packages the layout imports', () => {
+    // The direction that matters. A hand-kept list fails by omission: someone
+    // adds a font to Base.astro, several hundred more files go to visitors, and
+    // an unchanged SBOM keeps saying the site contains two — a false statement
+    // on a public transparency URL, with a green suite. Comparing the whole set
+    // against the imports catches that and the stale-entry case both.
+    const layout = readFileSync(join(import.meta.dirname, '..', 'src/layouts/Base.astro'), 'utf8')
+    const imported = new Set([...layout.matchAll(/@fontsource\/[a-z0-9-]+/g)].map((m) => m[0]))
+    expect(imported.size).toBeGreaterThan(0)
+    expect(new Set(JSON.parse(bom()).components.map((c: {name: string}) => c.name))).toEqual(
+      imported,
+    )
+  })
+
+  it('declares the CycloneDX media type, which the extensionless path cannot', () => {
+    // Workers Assets types a response by file extension and there is none, so
+    // without this rule the SBOM is served as an unknown type and no consumer
+    // can tell which format it got — the one thing RFC 9472 does require the
+    // server to signal. Read from the build, not from public/, so it also
+    // proves the rule reached the artifact.
+    const headers = readFileSync(join(DIST, '_headers'), 'utf8')
+    expect(headers).toContain('/.well-known/sbom')
+    expect(headers).toContain('Content-Type: application/vnd.cyclonedx+json')
   })
 })

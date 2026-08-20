@@ -58,14 +58,8 @@ export function buildSeo(input: SeoInput): SeoMeta {
   // route's own: the preview Worker (editor-only, and its robots.txt already
   // says Disallow), the site-wide switch on siteSettings, and the page's own.
   // Booleans carry no stega payload, so these need no clean().
-  //
-  // `=== true`, not a bare truthy check: astro.config.mjs inlines this as a
-  // real boolean in every actual build, but vitest.config.ts's `define`
-  // resolves `import.meta.env.PREVIEW` to the *string* `"false"` rather than
-  // the boolean — still falsy in intent, but truthy in JS. A naive `||` here
-  // would mark every page noindex under the default test run.
   const noIndex =
-    import.meta.env.PREVIEW === true || !!input.noIndex || !!settings.seo?.noIndex || !!seo?.noIndex
+    import.meta.env.PREVIEW || !!input.noIndex || !!settings.seo?.noIndex || !!seo?.noIndex
 
   // `noindex` alone, without `nofollow` — an excluded page may still link to
   // pages that should be crawled. When the page *is* indexed the tag is not

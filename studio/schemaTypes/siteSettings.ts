@@ -50,6 +50,15 @@ export const siteSettings = defineType({
     }),
     defineField({name: 'copyright', title: 'Copyright-Hinweis', type: 'string', group: 'brand'}),
     defineField({
+      name: 'icon',
+      title: 'Website-Icon',
+      type: 'image',
+      group: 'brand',
+      description:
+        'Das kleine Symbol im Browser-Tab und neben dem Suchergebnis. Quadratisch ' +
+        'und mindestens 512×512 Pixel.',
+    }),
+    defineField({
       name: 'backLabel',
       title: 'Zurück-Link',
       type: 'string',

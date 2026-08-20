@@ -25,7 +25,7 @@ export type Seo = NonNullable<Page['seo']>
 
 const USE_FIXTURES = process.env.SANITY_FIXTURES === '1'
 
-const SEO_PROJECTION = `seo{title, description, noIndex, ogImage{alt, asset}}`
+const SEO_PROJECTION = `seo{title, description, language, noIndex, ogImage{alt, asset}}`
 
 // A link resolves to the same `{label, href}` shape wherever it appears — a
 // button, a nav entry, a rich-text annotation — so the components never learn
@@ -66,7 +66,7 @@ const LINK_PROJECTION = `[${LINK_FILTER}]{_key, "label": coalesce(label, page->t
 // document would be a serialized extra round trip on every rendered page.
 export const SITE_SETTINGS_QUERY = defineQuery(`
   *[_id == "siteSettings" && _type == "siteSettings"][0]{
-    brand, tagline, email, instagram, instagramHandle, copyright,
+    brand, tagline, email, instagram, instagramHandle, copyright, icon{asset},
     backLabel, instagramLabel, notFound{heading, body},
     headerLinks${LINK_PROJECTION},
     footerLinks${LINK_PROJECTION},

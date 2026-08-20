@@ -14,6 +14,7 @@ export const seo = defineType({
       title: 'Titel',
       type: 'string',
       description: 'Überschreibt den Titel im Browser-Tab und in Suchergebnissen',
+      validation: (rule) => rule.max(60).warning('Möglichst unter 60 Zeichen halten'),
     }),
     defineField({
       name: 'description',
@@ -21,6 +22,28 @@ export const seo = defineType({
       type: 'text',
       rows: 3,
       validation: (rule) => rule.max(160).warning('Möglichst unter 160 Zeichen halten'),
+    }),
+    defineField({
+      name: 'language',
+      title: 'Sprache',
+      type: 'string',
+      description:
+        'Die Sprache dieser Seite. Bestimmt das lang-Attribut im HTML und die ' +
+        'Sprachangabe beim Teilen eines Links.',
+      options: {
+        list: [
+          {title: 'Englisch', value: 'en'},
+          {title: 'Deutsch', value: 'de'},
+        ],
+        layout: 'radio',
+      },
+      // Same trap as `noIndex` below: `initialValue` applies only to newly
+      // created documents, so every document that already exists reads
+      // `undefined`. The code fallback in site/src/lib/seo.ts is therefore
+      // 'de' — what the site renders today — and the site-wide default is set
+      // on siteSettings rather than assumed here. A code default of 'en' would
+      // silently relabel the German imprint on the next build.
+      initialValue: 'en',
     }),
     defineField({
       name: 'noIndex',

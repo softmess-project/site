@@ -2,7 +2,13 @@
   {
     "title": "Impressum",
     "slug": {"current": "impressum"},
-    "seo": {"title": null, "description": null, "language": "de", "noIndex": false, "ogImage": null},
+    "seo": {
+      "title": null,
+      "description": null,
+      "language": "de",
+      "noIndex": false,
+      "ogImage": null
+    },
     "pageBuilder": [
       {
         "_key": "rt1",

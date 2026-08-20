@@ -63,6 +63,23 @@ describe('built pages', () => {
       expect(d.querySelector('meta[name="description"]'), page).not.toBeNull()
     }
   })
+
+  it.skipIf(REAL_CONTENT)('emits an absolute og:image, inheriting the site-wide default', () => {
+    // og:image is the one tag a relative URL breaks silently: scrapers drop it
+    // and nothing on the page looks wrong. The fixture sets the image on
+    // siteSettings only, so this also pins the fall-through from a page that
+    // has no image of its own.
+    for (const page of ['index.html', 'impressum/index.html']) {
+      const d = doc(page)
+      const content = d.querySelector('meta[property="og:image"]')?.getAttribute('content')
+      expect(content, page).toBeTruthy()
+      expect(new URL(content!).protocol, page).toBe('https:')
+      expect(content, page).toContain('w=1200')
+      expect(d.querySelector('meta[name="twitter:card"]')?.getAttribute('content'), page).toBe(
+        'summary_large_image',
+      )
+    }
+  })
 })
 
 describe('home page', () => {
@@ -252,8 +269,56 @@ describe('page builder', () => {
   })
 
   it('keeps the preview hostname out of the static build', () => {
-    for (const page of PAGES) {
-      expect(readFileSync(join(DIST, page), 'utf8')).not.toContain('softmess-preview.9dev.workers.dev')
+    // PAGES stays HTML-only — it feeds doc() and the placeholder scan — so the
+    // two crawler files are added at this one call site. sitemap.xml is where a
+    // leaked origin does the most damage: every URL in it would be wrong.
+    for (const page of [...PAGES, 'robots.txt', 'sitemap.xml']) {
+      expect(readFileSync(join(DIST, page), 'utf8')).not.toContain(
+        'softmess-preview.9dev.workers.dev',
+      )
+    }
+  })
+})
+
+describe('crawler directives', () => {
+  // doc() rather than a regex over the raw file: a hand-rolled `<loc>` pattern
+  // silently returns [] if the emitted XML ever gains an attribute or a
+  // newline, and an empty list reads as "no URLs" instead of failing.
+  function locs(): string[] {
+    return [...doc('sitemap.xml').querySelectorAll('loc')].map((n) => n.textContent!)
+  }
+
+  it('allows crawling and points at the sitemap', () => {
+    const robots = readFileSync(join(DIST, 'robots.txt'), 'utf8')
+    expect(robots).toContain('User-agent: *')
+    expect(robots).toContain('Allow: /')
+    // The site-wide switch on siteSettings would put this here instead, which
+    // is exactly the accident worth catching: a Disallow in the production
+    // build is indistinguishable from a working one until traffic disappears.
+    expect(robots).not.toContain('Disallow')
+    // Same origin the canonical tags use, or search engines treat the sitemap
+    // as cross-submitted and ignore it.
+    expect(robots).toContain('Sitemap: https://softmess.de/sitemap.xml')
+  })
+
+  it('lists absolute URLs on the production origin, agreeing with trailingSlash', () => {
+    const urls = locs()
+    expect(urls).toContain('https://softmess.de/')
+    for (const loc of urls) {
+      expect(loc, loc).toMatch(/^https:\/\/softmess\.de\//)
+      if (new URL(loc).pathname !== '/') expect(loc, loc).not.toMatch(/\/$/)
+    }
+  })
+
+  it.skipIf(REAL_CONTENT)('excludes a noIndex page from the sitemap and marks it noindex', () => {
+    // The fixture sets seo.noIndex on datenschutz only. Both halves matter:
+    // dropping it from the sitemap is the hint, the meta tag is the directive,
+    // and only the tag actually keeps the page out of search results.
+    expect(locs()).toEqual(['https://softmess.de/', 'https://softmess.de/impressum'])
+    const excluded = doc('datenschutz/index.html').querySelector('meta[name="robots"]')
+    expect(excluded?.getAttribute('content')).toBe('noindex')
+    for (const page of ['index.html', 'impressum/index.html']) {
+      expect(doc(page).querySelector('meta[name="robots"]'), page).toBeNull()
     }
   })
 })

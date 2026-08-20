@@ -31,7 +31,7 @@ if (!page) {
 
 <Base
   title={page.seo?.title ?? `${page.title} · ${settings.brand}`}
-  description={page.seo?.description ?? undefined}
+  seo={page.seo}
   settings={settings}
 >
   <PageBuilder blocks={page.pageBuilder} />

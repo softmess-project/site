@@ -1,12 +1,16 @@
 ---
+import {externalAttrs} from '../../lib/link'
+
 const {node} = Astro.props
+// LINK_FILTER cannot drop a mark the way it drops an array member, so an
+// annotation pointing at a deleted or draft-only page still arrives with a null
+// href. `#` keeps it inert rather than shipping `<a href="/null">`.
 const href: string = node?.markDef?.href ?? '#'
-const external = href.startsWith('http')
 ---
 
 <a
   href={href}
-  {...external ? {target: '_blank', rel: 'noopener noreferrer'} : {}}
+  {...externalAttrs(href)}
   class="text-accent-700 underline decoration-1 underline-offset-[3px] hover:text-accent-800"
 >
   <slot />

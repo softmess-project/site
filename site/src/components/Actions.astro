@@ -1,4 +1,5 @@
 ---
+import {externalAttrs} from '../lib/link'
 interface Props {
   actions?: Array<{_key: string; label?: string | null; href?: string | null}> | null
 }
@@ -14,9 +15,7 @@ const secondary = 'flex-[1_1_200px] border border-ink/18 text-ink hover:bg-ink/7
       {actions.map((action, index) => (
         <a
           href={action.href}
-          {...action.href?.startsWith('http')
-            ? {target: '_blank', rel: 'noopener noreferrer'}
-            : {}}
+          {...externalAttrs(action.href)}
           class:list={[
             'inline-flex min-h-[54px] items-center justify-center gap-[10px] rounded-full px-[26px] font-sans text-[17px] no-underline',
             index === 0 ? primary : secondary,

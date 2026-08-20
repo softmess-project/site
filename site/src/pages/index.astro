@@ -5,9 +5,10 @@ import {getHomePage, getSiteSettings} from '../lib/content'
 
 const client = Astro.locals.sanity
 const [settings, home] = await Promise.all([getSiteSettings(client), getHomePage(client)])
-const title = settings.seo?.title ?? `${settings.brand} ${settings.tagline ?? ''}`.trim()
+const title =
+  home.seo?.title ?? settings.seo?.title ?? `${settings.brand} ${settings.tagline ?? ''}`.trim()
 ---
 
-<Base title={title} settings={settings}>
+<Base title={title} seo={home.seo} settings={settings}>
   <PageBuilder blocks={home.pageBuilder} />
 </Base>

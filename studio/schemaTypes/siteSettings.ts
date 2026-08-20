@@ -70,14 +70,14 @@ export const siteSettings = defineType({
       title: 'Links in der Kopfzeile',
       type: 'array',
       group: 'navigation',
-      of: [defineArrayMember({type: 'navLink'})],
+      of: [defineArrayMember({type: 'action'})],
     }),
     defineField({
       name: 'footerLinks',
       title: 'Links in der Fußzeile',
       type: 'array',
       group: 'navigation',
-      of: [defineArrayMember({type: 'navLink'})],
+      of: [defineArrayMember({type: 'action'})],
     }),
     defineField({
       name: 'notFound',
@@ -103,20 +103,10 @@ export const siteSettings = defineType({
     defineField({
       name: 'seo',
       title: 'Suchmaschinen',
-      type: 'object',
+      type: 'seo',
       group: 'seo',
+      description: 'Die Vorgabe für jede Seite, die nichts Eigenes hinterlegt hat',
       options: {collapsible: true, collapsed: false},
-      fields: [
-        defineField({name: 'title', title: 'Titel', type: 'string'}),
-        defineField({
-          name: 'description',
-          title: 'Beschreibung',
-          type: 'text',
-          rows: 3,
-          validation: (rule) => rule.max(160).warning('Möglichst unter 160 Zeichen halten'),
-        }),
-        defineField({name: 'ogImage', title: 'Vorschaubild', type: 'image'}),
-      ],
     }),
   ],
   preview: {

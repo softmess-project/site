@@ -118,7 +118,22 @@ and duplicate actions stripped — `studio/lib/singletons.ts`), plus `page`
 documents. Everything renders through `pageBuilder`: an array of `hero`,
 `richText`, `imageText`, `gallery`, `cta` blocks, dispatched by `_type` in
 `site/src/components/PageBuilder.astro`. The first block owns the `h1`;
-subsequent ones start at `h2` — heading level is never stored in content.
+subsequent ones start at `h2` — heading level is never stored in content. Only
+`gallery` renders no heading, so `pageBuilder` warns when it is placed first.
+
+Every link — a block's `actions`, both nav arrays, a rich-text annotation — is
+one of two types built from the same `linkFields`: `action` (target + label) or
+`link` (target only, because the marked-up text is the label). A `linkType`
+discriminant, not "whichever field is set", decides between the `page`
+reference and the `href`; switching a link hides the losing field but does not
+clear it. GROQ collapses both branches to `{label, href}` before the components
+see them, so nothing downstream knows internal and external links are stored
+differently. `LINK_FILTER` in `content.ts` drops links whose target does not
+resolve, which is what keeps `<a href="/null">` off the published site.
+
+`seo` is one shared object type on `siteSettings` (the site-wide default),
+`homePage` and `page`. `og:image` falls through from the page to the site
+default in `Base.astro`, and must stay absolute.
 
 Adding a block type means: `studio/schemaTypes/blocks/<name>.ts` →
 `schemaTypes/index.ts` → the `pageBuilder` array → `PAGE_BUILDER_PROJECTION` in

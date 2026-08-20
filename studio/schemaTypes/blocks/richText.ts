@@ -24,22 +24,7 @@ export const richText = defineType({
               {title: 'Fett', value: 'strong'},
               {title: 'Kursiv', value: 'em'},
             ],
-            annotations: [
-              defineArrayMember({
-                name: 'link',
-                type: 'object',
-                title: 'Link',
-                fields: [
-                  defineField({
-                    name: 'href',
-                    title: 'Adresse',
-                    type: 'url',
-                    validation: (rule) =>
-                      rule.required().uri({scheme: ['http', 'https', 'mailto']}),
-                  }),
-                ],
-              }),
-            ],
+            annotations: [defineArrayMember({type: 'link'})],
           },
         }),
       ],

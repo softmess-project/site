@@ -9,8 +9,8 @@
   "instagramLabel": "instagram",
   "headerLinks": [],
   "footerLinks": [
-    {"_key": "impressum", "label": null, "title": "Impressum", "slug": "impressum"},
-    {"_key": "datenschutz", "label": null, "title": "Datenschutz", "slug": "datenschutz"}
+    {"_key": "impressum", "label": "Impressum", "href": "/impressum"},
+    {"_key": "datenschutz", "label": "Datenschutz", "href": "/datenschutz"}
   ],
   "notFound": {
     "heading": "lost",
@@ -18,6 +18,14 @@
   },
   "seo": {
     "title": "softmess project",
-    "description": "handmade charms of paracord and resin clay, made once and probably never again."
+    "description": "handmade charms of paracord and resin clay, made once and probably never again.",
+    "noIndex": false,
+    "ogImage": {
+      "alt": "A handmade resin-clay charm on a paracord cord",
+      "asset": {
+        "_ref": "image-0000000000000000000000000000000000000000-966x1207-jpg",
+        "_type": "reference"
+      }
+    }
   }
 }

@@ -5,16 +5,17 @@ import {hero} from './blocks/hero'
 import {imageText} from './blocks/imageText'
 import {richText} from './blocks/richText'
 import {homePage} from './homePage'
-import {navLink} from './navLink'
+import {link} from './link'
 import {page} from './page'
 import {pageBuilder} from './pageBuilder'
+import {seo} from './seo'
 import {siteSettings} from './siteSettings'
 
 export const schemaTypes = [
   siteSettings,
   homePage,
   page,
-  navLink,
+  link,
   pageBuilder,
   hero,
   richText,
@@ -22,4 +23,5 @@ export const schemaTypes = [
   gallery,
   cta,
   action,
+  seo,
 ]

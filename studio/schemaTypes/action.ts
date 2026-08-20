@@ -1,31 +1,34 @@
 import {defineField, defineType} from 'sanity'
 import {LinkIcon} from '@sanity/icons/Link'
+import {isExternal, linkFields, linkTargetSelection, linkTargetSubtitle} from './linkFields'
 
+/** A link with a visible label: the buttons under a block, and every entry in
+ *  the header and footer navigation. Same targets as `link`, plus the text. */
 export const action = defineType({
   name: 'action',
-  title: 'Aktion',
+  title: 'Link',
   type: 'object',
   icon: LinkIcon,
   fields: [
+    ...linkFields,
     defineField({
       name: 'label',
       title: 'Beschriftung',
       type: 'string',
-      description: 'Button-Text, z. B. "alles passiert auf instagram"',
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: 'href',
-      type: 'url',
-      title: 'Adresse',
+      description: 'Leer lassen, um den Titel der verlinkten Seite zu benutzen',
+      // Only an internal link has a page title to fall back on. Without a
+      // label an external one renders as an empty button.
       validation: (rule) =>
-        rule
-          .required()
-          .uri({scheme: ['http', 'https', 'mailto']})
-          .error('Must be an http(s) or mailto: link'),
+        rule.custom((label, context) =>
+          isExternal(context) && !label ? 'Bitte eine Beschriftung eingeben' : true,
+        ),
     }),
   ],
   preview: {
-    select: {title: 'label', subtitle: 'href'},
+    select: {...linkTargetSelection, label: 'label', pageTitle: 'page.title'},
+    prepare: (selection) => ({
+      title: selection.label || selection.pageTitle || 'Ohne Beschriftung',
+      subtitle: linkTargetSubtitle(selection),
+    }),
   },
 })

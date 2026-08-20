@@ -2,7 +2,7 @@
   {
     "title": "Impressum",
     "slug": {"current": "impressum"},
-    "seo": {"title": null, "description": null},
+    "seo": {"title": null, "description": null, "ogImage": null},
     "pageBuilder": [
       {
         "_key": "rt1",
@@ -33,7 +33,7 @@
   {
     "title": "Datenschutz",
     "slug": {"current": "datenschutz"},
-    "seo": {"title": null, "description": null},
+    "seo": {"title": null, "description": null, "ogImage": null},
     "pageBuilder": [
       {
         "_key": "rt1",

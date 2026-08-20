@@ -49,18 +49,8 @@ export const page = defineType({
     defineField({
       name: 'seo',
       title: 'Suchmaschinen',
-      type: 'object',
+      type: 'seo',
       options: {collapsible: true, collapsed: true},
-      fields: [
-        defineField({name: 'title', title: 'Titel', type: 'string'}),
-        defineField({
-          name: 'description',
-          title: 'Beschreibung',
-          type: 'text',
-          rows: 3,
-          validation: (rule) => rule.max(160).warning('Möglichst unter 160 Zeichen halten'),
-        }),
-      ],
     }),
   ],
   preview: {
@@ -75,11 +65,12 @@ export const page = defineType({
       if (!doc?._id) return true
       const id = doc._id.replace(/^drafts\./, '')
       const linked = await context.getClient({apiVersion: '2026-08-15'}).fetch<boolean>(
-        // navLink stores its reference under `page`, so the refs live at
+        // `action` stores its reference under `page`, so the refs live at
         // headerLinks[].page._ref — not at headerLinks[]._ref. coalesce(...,
         // 0) matters: count() of an unset array is null, and null + n is
         // null, so without it a document missing either array always read
-        // as "linked from nowhere".
+        // as "linked from nowhere". An external nav link has no `page` at
+        // all and simply never matches.
         `coalesce(count(*[_id == "siteSettings"][0].headerLinks[page._ref == $id]), 0) +
          coalesce(count(*[_id == "siteSettings"][0].footerLinks[page._ref == $id]), 0) > 0`,
         {id},

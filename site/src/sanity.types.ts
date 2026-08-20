@@ -15,10 +15,40 @@
 export declare const internalGroqTypeReferenceTo: unique symbol
 
 // Source: schema.json
+export type SanityImageAssetReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'sanity.imageAsset'
+}
+
+export type Seo = {
+  _type: 'seo'
+  title?: string
+  description?: string
+  ogImage?: {
+    asset?: SanityImageAssetReference
+    media?: unknown
+    hotspot?: SanityImageHotspot
+    crop?: SanityImageCrop
+    alt?: string
+    _type: 'image'
+  }
+}
+
+export type PageReference = {
+  _ref: string
+  _type: 'reference'
+  _weak?: boolean
+  [internalGroqTypeReferenceTo]?: 'page'
+}
+
 export type Action = {
   _type: 'action'
-  label?: string
+  linkType?: 'internal' | 'external'
+  page?: PageReference
   href?: string
+  label?: string
 }
 
 export type Cta = {
@@ -31,13 +61,6 @@ export type Cta = {
     } & Action
   >
   background?: 'normal' | 'akzent'
-}
-
-export type SanityImageAssetReference = {
-  _ref: string
-  _type: 'reference'
-  _weak?: boolean
-  [internalGroqTypeReferenceTo]?: 'sanity.imageAsset'
 }
 
 export type Gallery = {
@@ -86,11 +109,11 @@ export type RichText = {
     }>
     style?: 'normal' | 'h2'
     listItem?: 'bullet'
-    markDefs?: Array<{
-      href?: string
-      _type: 'link'
-      _key: string
-    }>
+    markDefs?: Array<
+      {
+        _key: string
+      } & Link
+    >
     level?: number
     _type: 'block'
     _key: string
@@ -137,17 +160,11 @@ export type PageBuilder = Array<
     } & Cta)
 >
 
-export type PageReference = {
-  _ref: string
-  _type: 'reference'
-  _weak?: boolean
-  [internalGroqTypeReferenceTo]?: 'page'
-}
-
-export type NavLink = {
-  _type: 'navLink'
-  label?: string
+export type Link = {
+  _type: 'link'
+  linkType?: 'internal' | 'external'
   page?: PageReference
+  href?: string
 }
 
 export type Page = {
@@ -159,10 +176,7 @@ export type Page = {
   title?: string
   slug?: Slug
   pageBuilder?: PageBuilder
-  seo?: {
-    title?: string
-    description?: string
-  }
+  seo?: Seo
 }
 
 export type Slug = {
@@ -178,6 +192,7 @@ export type HomePage = {
   _updatedAt: string
   _rev: string
   pageBuilder?: PageBuilder
+  seo?: Seo
 }
 
 export type SanityImageCrop = {
@@ -213,28 +228,18 @@ export type SiteSettings = {
   headerLinks?: Array<
     {
       _key: string
-    } & NavLink
+    } & Action
   >
   footerLinks?: Array<
     {
       _key: string
-    } & NavLink
+    } & Action
   >
   notFound?: {
     heading?: string
     body?: string
   }
-  seo?: {
-    title?: string
-    description?: string
-    ogImage?: {
-      asset?: SanityImageAssetReference
-      media?: unknown
-      hotspot?: SanityImageHotspot
-      crop?: SanityImageCrop
-      _type: 'image'
-    }
-  }
+  seo?: Seo
 }
 
 export type SanityImagePaletteSwatch = {
@@ -335,16 +340,17 @@ export type Geopoint = {
 }
 
 export type AllSanitySchemaTypes =
+  | SanityImageAssetReference
+  | Seo
+  | PageReference
   | Action
   | Cta
-  | SanityImageAssetReference
   | Gallery
   | ImageText
   | RichText
   | Hero
   | PageBuilder
-  | PageReference
-  | NavLink
+  | Link
   | Page
   | Slug
   | HomePage
@@ -362,7 +368,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
-// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    seo{title, description, ogImage}  }
+// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    headerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    footerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    seo{title, description, ogImage{alt, asset}}  }
 export type SITE_SETTINGS_QUERY_RESULT = {
   brand: string | null
   tagline: string | null
@@ -376,23 +382,38 @@ export type SITE_SETTINGS_QUERY_RESULT = {
     heading: string | null
     body: string | null
   } | null
+  headerLinks: Array<{
+    _key: string
+    label: string | null
+    href: string | null
+  }> | null
+  footerLinks: Array<{
+    _key: string
+    label: string | null
+    href: string | null
+  }> | null
   seo: {
     title: string | null
     description: string | null
     ogImage: {
-      asset?: SanityImageAssetReference
-      media?: unknown
-      hotspot?: SanityImageHotspot
-      crop?: SanityImageCrop
-      _type: 'image'
+      alt: string | null
+      asset: SanityImageAssetReference | null
     } | null
   } | null
 } | null
 
 // Source: ../site/src/lib/content.ts
 // Variable: HOME_PAGE_QUERY
-// Query: *[_id == "homePage" && _type == "homePage"][0]{  pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},    _type == "richText" => {content, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}  }}
+// Query: *[_id == "homePage" && _type == "homePage"][0]{seo{title, description, ogImage{alt, asset}},   pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "richText" => {content[]{..., markDefs[]{..., _type == "link" => {"href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}}, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}  }}
 export type HOME_PAGE_QUERY_RESULT = {
+  seo: {
+    title: string | null
+    description: string | null
+    ogImage: {
+      alt: string | null
+      asset: SanityImageAssetReference | null
+    } | null
+  } | null
   pageBuilder: Array<
     | {
         _key: string
@@ -462,11 +483,13 @@ export type HOME_PAGE_QUERY_RESULT = {
           }>
           style?: 'h2' | 'normal'
           listItem?: 'bullet'
-          markDefs?: Array<{
-            href?: string
-            _type: 'link'
+          markDefs: Array<{
             _key: string
-          }>
+            _type: 'link'
+            linkType?: 'external' | 'internal'
+            page?: PageReference
+            href: string | null
+          }> | null
           level?: number
           _type: 'block'
           _key: string
@@ -483,13 +506,17 @@ export type PAGE_SLUGS_QUERY_RESULT = Array<string | null>
 
 // Source: ../site/src/lib/content.ts
 // Variable: PAGE_QUERY
-// Query: *[_type == "page" && slug.current == $slug][0]{    title, "slug": slug.current, seo{title, description},      pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[]{_key, label, href}},    _type == "richText" => {content, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[]{_key, label, href}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[]{_key, label, href}}  }  }
+// Query: *[_type == "page" && slug.current == $slug][0]{    title, "slug": slug.current, seo{title, description, ogImage{alt, asset}},      pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "richText" => {content[]{..., markDefs[]{..., _type == "link" => {"href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}}, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}  }  }
 export type PAGE_QUERY_RESULT = {
   title: string | null
   slug: string | null
   seo: {
     title: string | null
     description: string | null
+    ogImage: {
+      alt: string | null
+      asset: SanityImageAssetReference | null
+    } | null
   } | null
   pageBuilder: Array<
     | {
@@ -560,11 +587,13 @@ export type PAGE_QUERY_RESULT = {
           }>
           style?: 'h2' | 'normal'
           listItem?: 'bullet'
-          markDefs?: Array<{
-            href?: string
-            _type: 'link'
+          markDefs: Array<{
             _key: string
-          }>
+            _type: 'link'
+            linkType?: 'external' | 'internal'
+            page?: PageReference
+            href: string | null
+          }> | null
           level?: number
           _type: 'block'
           _key: string
@@ -573,27 +602,3 @@ export type PAGE_QUERY_RESULT = {
       }
   > | null
 } | null
-
-// Source: ../site/src/lib/content.ts
-// Variable: NAV_QUERY
-// Query: *[_id == "siteSettings"][0]{    headerLinks[defined(page->slug.current)]{_key, label, "title": page->title, "slug": page->slug.current},    footerLinks[defined(page->slug.current)]{_key, label, "title": page->title, "slug": page->slug.current}  }
-export type NAV_QUERY_RESULT =
-  | {
-      headerLinks: null
-      footerLinks: null
-    }
-  | {
-      headerLinks: Array<{
-        _key: string
-        label: string | null
-        title: string | null
-        slug: string | null
-      }> | null
-      footerLinks: Array<{
-        _key: string
-        label: string | null
-        title: string | null
-        slug: string | null
-      }> | null
-    }
-  | null

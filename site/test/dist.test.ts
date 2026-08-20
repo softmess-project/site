@@ -63,6 +63,23 @@ describe('built pages', () => {
       expect(d.querySelector('meta[name="description"]'), page).not.toBeNull()
     }
   })
+
+  it.skipIf(REAL_CONTENT)('emits an absolute og:image, inheriting the site-wide default', () => {
+    // og:image is the one tag a relative URL breaks silently: scrapers drop it
+    // and nothing on the page looks wrong. The fixture sets the image on
+    // siteSettings only, so this also pins the fall-through from a page that
+    // has no image of its own.
+    for (const page of ['index.html', 'impressum/index.html']) {
+      const d = doc(page)
+      const content = d.querySelector('meta[property="og:image"]')?.getAttribute('content')
+      expect(content, page).toBeTruthy()
+      expect(new URL(content!).protocol, page).toBe('https:')
+      expect(content, page).toContain('w=1200')
+      expect(d.querySelector('meta[name="twitter:card"]')?.getAttribute('content'), page).toBe(
+        'summary_large_image',
+      )
+    }
+  })
 })
 
 describe('home page', () => {

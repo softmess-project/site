@@ -7,18 +7,30 @@ import '@fontsource/outfit/700.css'
 import '../styles/theme.css'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
-import {getNav} from '../lib/content'
-import type {SiteSettings} from '../lib/content'
+import type {Seo, SiteSettings} from '../lib/content'
+import {srcFor} from '../lib/image'
 
 interface Props {
   title: string
-  description?: string
+  // The document's own metadata, passed whole rather than field by field: every
+  // fall-through to the site-wide default is decided here, so adding a field to
+  // `seo` does not mean threading a prop through all three pages again. `title`
+  // stays with the caller — its fallback is a different sentence per page.
+  seo?: Seo | null
   settings: SiteSettings
 }
 
-const {title, description, settings} = Astro.props
-const metaDescription = description ?? settings.seo?.description ?? ''
-const nav = await getNav(Astro.locals.sanity)
+const {title, seo, settings} = Astro.props
+const metaDescription = seo?.description ?? settings.seo?.description ?? ''
+
+// og:image must be absolute — a relative one is silently dropped by every
+// scraper. srcFor already returns an absolute cdn.sanity.io URL unless
+// PROXY_IMAGES rewrites it onto our own origin, so resolve against Astro.site
+// either way. 1200×630 is the size Open Graph consumers crop to.
+const socialImage = seo?.ogImage?.asset ? seo.ogImage : settings.seo?.ogImage
+const socialImageUrl = socialImage?.asset
+  ? new URL(srcFor(socialImage, 1200, 630), Astro.site).href
+  : null
 
 const {VisualEditing} = import.meta.env.PREVIEW
   ? await import('@sanity/astro/visual-editing')
@@ -35,6 +47,11 @@ const {VisualEditing} = import.meta.env.PREVIEW
     <meta property="og:title" content={title} />
     {metaDescription && <meta property="og:description" content={metaDescription} />}
     <meta property="og:type" content="website" />
+    {socialImageUrl && <meta property="og:image" content={socialImageUrl} />}
+    {socialImageUrl && socialImage?.alt && (
+      <meta property="og:image:alt" content={socialImage.alt} />
+    )}
+    <meta name="twitter:card" content={socialImageUrl ? 'summary_large_image' : 'summary'} />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
   </head>
   <body
@@ -51,9 +68,9 @@ const {VisualEditing} = import.meta.env.PREVIEW
     >
     </div>
 
-    <Header settings={settings} links={nav.headerLinks} />
+    <Header settings={settings} links={settings.headerLinks} />
     <slot />
-    <Footer settings={settings} links={nav.footerLinks} />
+    <Footer settings={settings} links={settings.footerLinks} />
     {VisualEditing && <VisualEditing enabled={Astro.locals.draft} />}
   </body>
 </html>

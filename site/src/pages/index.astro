@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro'
 import PageBuilder from '../components/PageBuilder.astro'
 import {getHomePage, getSiteSettings} from '../lib/content'
+import {organizationJsonLd} from '../lib/seo'
 
 const client = Astro.locals.sanity
 const [settings, home] = await Promise.all([getSiteSettings(client), getHomePage(client)])
@@ -9,6 +10,11 @@ const title =
   home.seo?.title ?? settings.seo?.title ?? `${settings.brand} ${settings.tagline ?? ''}`.trim()
 ---
 
-<Base title={title} seo={home.seo} settings={settings}>
+<Base
+  title={title}
+  seo={home.seo}
+  settings={settings}
+  jsonLd={[organizationJsonLd(settings, Astro.site!)]}
+>
   <PageBuilder blocks={home.pageBuilder} />
 </Base>

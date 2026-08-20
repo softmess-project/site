@@ -285,9 +285,34 @@ describe('promises the site makes in its own privacy policy', () => {
     }
   })
 
-  it('ships no JavaScript', () => {
+  it('ships no executable JavaScript', () => {
+    // Narrower than "no <script> elements", not weaker: JSON-LD is a script
+    // tag that cannot run, and these two conditions together admit nothing
+    // that can. A src would be a third-party subresource (the test above
+    // catches that too); any type other than ld+json would be code.
     for (const page of PAGES) {
-      expect(doc(page).querySelectorAll('script'), page).toHaveLength(0)
+      const scripts = [...doc(page).querySelectorAll('script')]
+      for (const script of scripts) {
+        expect(script.getAttribute('src'), `${page} loads a script`).toBeNull()
+        expect(script.getAttribute('type'), `${page} runs a script`).toBe('application/ld+json')
+      }
+    }
+  })
+
+  it('emits parseable Organization JSON-LD on the home page only', () => {
+    const blocks = [...doc('index.html').querySelectorAll('script[type="application/ld+json"]')]
+    expect(blocks).toHaveLength(1)
+    // Parsing, not just presence: a malformed builder would otherwise ship
+    // invisible garbage that only Google's validator ever notices.
+    const json = JSON.parse(blocks[0].textContent!)
+    expect(json['@context']).toBe('https://schema.org')
+    expect(json['@type']).toBe('Organization')
+    expect(json.name.length).toBeGreaterThan(0)
+    expect(json.url).toMatch(/^https:\/\//)
+
+    // A knowledge-panel signal belongs on the home page and nowhere else.
+    for (const page of ['impressum/index.html', 'datenschutz/index.html', '404.html']) {
+      expect(doc(page).querySelectorAll('script[type="application/ld+json"]'), page).toHaveLength(0)
     }
   })
 })

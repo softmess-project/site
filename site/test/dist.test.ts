@@ -136,6 +136,45 @@ describe('built pages', () => {
   })
 })
 
+describe('site icon', () => {
+  // Prerendered from Sanity at build time, exactly like robots.txt and
+  // sitemap.xml, so a visitor fetches the icon from our own origin and never
+  // contacts Sanity for it. That matters most on the legal pages and the 404,
+  // which load no images at all.
+  const ICONS = ['favicon.png', 'apple-touch-icon.png']
+
+  it('emits both icon files as real PNGs, whether or not one was uploaded', () => {
+    // Unconditional on purpose, real content included. The routes never 404:
+    // a prerendered endpoint writes its body to dist/ whatever the status and
+    // Cloudflare serves that file with 200, so "no icon yet" has to mean valid
+    // placeholder bytes rather than an empty file answering 200.
+    for (const icon of ICONS) {
+      const path = join(DIST, icon)
+      expect(existsSync(path), icon).toBe(true)
+      const magic = [...readFileSync(path).subarray(0, 8)]
+      expect(magic, icon).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    }
+  })
+
+  it('links both from every page', () => {
+    for (const page of PAGES) {
+      const d = doc(page)
+      expect(d.querySelector('link[rel="icon"]')?.getAttribute('href'), page).toBe('/favicon.png')
+      expect(d.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'), page).toBe(
+        '/apple-touch-icon.png',
+      )
+    }
+  })
+
+  it('redirects the legacy /favicon.ico that crawlers still request', () => {
+    // Browsers honouring <link rel="icon"> never ask for it, but crawlers and
+    // preview tools do, and without the rule Cloudflare's
+    // not_found_handling: "404-page" answers them with the 404 HTML page.
+    const redirects = readFileSync(join(import.meta.dirname, '..', 'public', '_redirects'), 'utf8')
+    expect(redirects).toContain('/favicon.ico /favicon.png 301')
+  })
+})
+
 describe('home page', () => {
   // Split deliberately: the exact copy is fixture-only, but "the hero says
   // something at all" must hold for the real build too — otherwise a hero

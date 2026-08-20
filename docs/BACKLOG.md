@@ -531,11 +531,15 @@ Not built, and not because it was overlooked:
   routes and search engines discount an unverifiable value. It becomes worth the
   cost when `_updatedAt` means something — i.e. when there are posts.
 - **RSS/Atom, `Article` JSON-LD, `og:type=article`.** Nothing to put in a feed
-  yet. All three plug into `lib/seo.ts` as a new `OgType` and a builder beside
-  `organizationJsonLd`; `Base.astro`'s head does not move again.
+  yet. All three plug into `lib/seo.ts` as a new `OgType` and a fourth node
+  appended inside `siteGraph`; `Base.astro`'s head does not move again.
 - **`Product` JSON-LD.** Blocked on a commercial question, not a technical one:
   is there a price, is there stock, does a visitor buy on-site or by Instagram
   DM. `Offer` follows from that answer and earns nothing before it.
+- **`BreadcrumbList`.** The one structured-data type here that *would* earn a
+  Google rich result — and the site is flat, so there is no trail to describe.
+  It becomes real the moment a post or catalogue route nests below a section,
+  and joins the existing `@graph` the same way.
 - **`hreflang`.** The site is mixed-language by design — the German imprint is
   not an alternate of the English home page — so there are no alternate pairs to
   declare. This refines `2026-08-16-page-builder-design.md`, which asserted the

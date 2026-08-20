@@ -57,6 +57,9 @@ export const siteSettings = defineType({
       description:
         'Das kleine Symbol im Browser-Tab und neben dem Suchergebnis. Quadratisch ' +
         'und mindestens 512×512 Pixel.',
+      // Sanity's image API never rasterizes SVG, so an SVG upload would serve
+      // /favicon.png with SVG bytes under a content-type: image/png header.
+      options: {accept: 'image/png,image/jpeg'},
     }),
     defineField({
       name: 'backLabel',

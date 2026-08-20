@@ -324,6 +324,43 @@ To verify: `LIVE=1 pnpm verify:live`. The gate assertion runs unauthenticated;
 the four assertions behind it need `PREVIEW_COOKIE='CF_Authorization=…'` copied
 from a logged-in browser, and skip without it.
 
+### 1.7 Two Studio edits the seo-social-metadata branch needs from you
+
+Merging that branch does not, by itself, achieve two of its four headline
+goals on the live site. Both need one edit in the Studio; neither is a code
+change, so nothing here will fail a build to remind you.
+
+**Set the home page's language.** *Startseite → Suchmaschinen → Sprache* →
+**Englisch**. Until this is set, production still renders `lang="de"` on the
+English home page — every visible string on it is English, and the tag
+claims otherwise. The code default is `de`, deliberately: `initialValue` only
+ever applies to newly created documents, so a document that already exists
+reads as unset regardless of what the field's default says. Defaulting the
+*code* to `en` would have silently relabelled the German imprint and privacy
+policy on the next build — the wrong direction to be wrong in. `de` preserves
+exactly what ships today; setting the home page to Englisch is the one
+deliberate edit that makes the tag true again.
+
+**Upload the site icon.** *Website-Einstellungen → Marke → Website-Icon*,
+square, at least 512×512. Until then `/favicon.png` and
+`/apple-touch-icon.png` keep serving the valid 68-byte 1×1 transparent PNG
+placeholder — no broken link, no build failure, just no visible favicon in a
+browser tab or beside a mobile search result. `Organization.logo` is also
+omitted from the JSON-LD while this is unset: a blank placeholder is not a
+logo worth claiming.
+
+Two smaller, unrelated notes from the same review:
+
+- `og:image:width` is declared as `1200`, but Sanity's rect-crop rounding can
+  deliver `1199×630` for some source aspect ratios. Harmless — scrapers
+  measure the actual bytes rather than trusting the tag — but the declared
+  value is a hint, not a guarantee.
+- Prettier is a devDependency of `studio/` only and is not wired into
+  `pnpm verify`, so no file under `site/` is format-checked in CI, and
+  `.astro` files couldn't be even if it were — there is no
+  `prettier-plugin-astro` in use. A standing gap in the convention, not
+  something this branch introduced or is fixing.
+
 ---
 
 ## 2. Answered

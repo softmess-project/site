@@ -110,14 +110,19 @@ describe('built pages', () => {
     }
   })
 
-  it.skipIf(REAL_CONTENT)('resolves each page language through the fall-through', () => {
-    // The fixtures set 'en' on the home page, 'de' on the imprint, and nothing
-    // at all on datenschutz or siteSettings — so the third case proves the
-    // code default rather than a stored value.
-    expect(doc('index.html').documentElement.getAttribute('lang')).toBe('en')
-    expect(doc('impressum/index.html').documentElement.getAttribute('lang')).toBe('de')
-    expect(doc('datenschutz/index.html').documentElement.getAttribute('lang')).toBe('de')
-  })
+  it.skipIf(REAL_CONTENT)(
+    'resolves each page language from its own setting, or the code default when unset',
+    () => {
+      // The fixtures set 'en' on the home page, 'de' on the imprint, and
+      // nothing at all on datenschutz or siteSettings — so the third case
+      // proves the code default rather than a stored value. Site-level
+      // fall-through (a page with nothing set inheriting siteSettings'
+      // language) is covered only by the unit test in seo.test.ts, not here.
+      expect(doc('index.html').documentElement.getAttribute('lang')).toBe('en')
+      expect(doc('impressum/index.html').documentElement.getAttribute('lang')).toBe('de')
+      expect(doc('datenschutz/index.html').documentElement.getAttribute('lang')).toBe('de')
+    },
+  )
 
   it('asks for a large image preview where indexed, and excludes where not', () => {
     const robots = (page: string) =>

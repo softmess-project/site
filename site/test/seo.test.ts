@@ -1,4 +1,5 @@
 import {describe, expect, it} from 'vitest'
+import {vercelStegaCombine, vercelStegaSplit} from '@vercel/stega'
 import {buildSeo, jsonLdScript, organizationJsonLd} from '../src/lib/seo'
 import type {Seo, SiteSettings} from '../src/lib/content'
 
@@ -87,6 +88,21 @@ describe('robots', () => {
     // An excluded page may still link to pages that should be crawled.
     expect(build({noIndex: true}).robots).not.toContain('nofollow')
   })
+
+  it('excludes the page when PREVIEW is set, and restores the flag afterwards', () => {
+    // If this branch is ever dropped from seo.ts's expression, the preview
+    // Worker on workers.dev starts emitting max-image-preview:large on draft
+    // content, and robots.txt's Disallow is the only thing left standing
+    // between unpublished pages and Google.
+    const env = import.meta.env as {PREVIEW?: boolean}
+    const original = env.PREVIEW
+    try {
+      env.PREVIEW = true
+      expect(build().robots).toBe('noindex')
+    } finally {
+      env.PREVIEW = original
+    }
+  })
 })
 
 describe('canonical', () => {
@@ -151,6 +167,17 @@ describe('organization JSON-LD', () => {
     const json = organizationJsonLd(settings(), SITE)
     expect(json).not.toHaveProperty('email')
     expect(json).not.toHaveProperty('sameAs')
+  })
+
+  it('strips stega source-map payloads, since a validator reads this string', () => {
+    // clean() runs on every value here for exactly this reason: a stega
+    // payload is invisible in a meta tag but becomes part of the string a
+    // structured-data validator sees. Pin it so dropping clean() is caught.
+    const brand = vercelStegaCombine('softmess', {origin: 'test', href: '/', editUrl: '/edit'})
+    const json = organizationJsonLd(settings(null, {brand}), SITE) as Record<string, unknown>
+    const {cleaned, encoded} = vercelStegaSplit(json.name as string)
+    expect(encoded).toBe('')
+    expect(cleaned).toBe('softmess')
   })
 })
 

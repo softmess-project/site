@@ -26,6 +26,7 @@ export type Seo = {
   _type: 'seo'
   title?: string
   description?: string
+  noIndex?: boolean
   ogImage?: {
     asset?: SanityImageAssetReference
     media?: unknown
@@ -368,7 +369,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
-// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    headerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    footerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    seo{title, description, ogImage{alt, asset}}  }
+// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    headerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    footerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    seo{title, description, noIndex, ogImage{alt, asset}}  }
 export type SITE_SETTINGS_QUERY_RESULT = {
   brand: string | null
   tagline: string | null
@@ -395,6 +396,7 @@ export type SITE_SETTINGS_QUERY_RESULT = {
   seo: {
     title: string | null
     description: string | null
+    noIndex: boolean | null
     ogImage: {
       alt: string | null
       asset: SanityImageAssetReference | null
@@ -404,11 +406,12 @@ export type SITE_SETTINGS_QUERY_RESULT = {
 
 // Source: ../site/src/lib/content.ts
 // Variable: HOME_PAGE_QUERY
-// Query: *[_id == "homePage" && _type == "homePage"][0]{seo{title, description, ogImage{alt, asset}},   pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "richText" => {content[]{..., markDefs[]{..., _type == "link" => {"href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}}, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}  }}
+// Query: *[_id == "homePage" && _type == "homePage"][0]{seo{title, description, noIndex, ogImage{alt, asset}},   pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "richText" => {content[]{..., markDefs[]{..., _type == "link" => {"href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}}, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}  }}
 export type HOME_PAGE_QUERY_RESULT = {
   seo: {
     title: string | null
     description: string | null
+    noIndex: boolean | null
     ogImage: {
       alt: string | null
       asset: SanityImageAssetReference | null
@@ -505,14 +508,24 @@ export type HOME_PAGE_QUERY_RESULT = {
 export type PAGE_SLUGS_QUERY_RESULT = Array<string | null>
 
 // Source: ../site/src/lib/content.ts
+// Variable: SITEMAP_QUERY
+// Query: {  "siteExcluded": coalesce(*[_id == "siteSettings" && _type == "siteSettings"][0].seo.noIndex, false),  "homeExcluded": coalesce(*[_id == "homePage" && _type == "homePage"][0].seo.noIndex, false),  "slugs": *[_type == "page" && defined(slug.current) && seo.noIndex != true].slug.current}
+export type SITEMAP_QUERY_RESULT = {
+  siteExcluded: boolean | false
+  homeExcluded: boolean | false
+  slugs: Array<string | null>
+}
+
+// Source: ../site/src/lib/content.ts
 // Variable: PAGE_QUERY
-// Query: *[_type == "page" && slug.current == $slug][0]{    title, "slug": slug.current, seo{title, description, ogImage{alt, asset}},      pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "richText" => {content[]{..., markDefs[]{..., _type == "link" => {"href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}}, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}  }  }
+// Query: *[_type == "page" && slug.current == $slug][0]{    title, "slug": slug.current, seo{title, description, noIndex, ogImage{alt, asset}},      pageBuilder[]{    _key, _type,    _type == "hero" => {heading, statement, body, image{alt, asset}, imagePosition, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "richText" => {content[]{..., markDefs[]{..., _type == "link" => {"href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}}, width},    _type == "imageText" => {image{alt, asset}, heading, body, imagePosition, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}},    _type == "gallery" => {images[]{_key, alt, asset}, columns},    _type == "cta" => {heading, body, background, actions[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)}}  }  }
 export type PAGE_QUERY_RESULT = {
   title: string | null
   slug: string | null
   seo: {
     title: string | null
     description: string | null
+    noIndex: boolean | null
     ogImage: {
       alt: string | null
       asset: SanityImageAssetReference | null

@@ -19,6 +19,7 @@
   "seo": {
     "title": "softmess project",
     "description": "handmade charms of paracord and resin clay, made once and probably never again.",
+    "noIndex": false,
     "ogImage": {
       "alt": "A handmade resin-clay charm on a paracord cord",
       "asset": {

@@ -32,6 +32,13 @@ const socialImageUrl = socialImage?.asset
   ? new URL(srcFor(socialImage, 1200, 630), Astro.site).href
   : null
 
+// Three independent reasons to keep a page out of search results: the preview
+// Worker (editor-only, and its robots.txt already says Disallow), the site-wide
+// switch on siteSettings, and the page's own. Booleans carry no stega payload,
+// so these need no stegaClean. `noindex` alone, without `nofollow` — an excluded page may still
+// link to pages that should be crawled.
+const noIndex = import.meta.env.PREVIEW || !!settings.seo?.noIndex || !!seo?.noIndex
+
 const {VisualEditing} = import.meta.env.PREVIEW
   ? await import('@sanity/astro/visual-editing')
   : {VisualEditing: null}
@@ -52,6 +59,7 @@ const {VisualEditing} = import.meta.env.PREVIEW
       <meta property="og:image:alt" content={socialImage.alt} />
     )}
     <meta name="twitter:card" content={socialImageUrl ? 'summary_large_image' : 'summary'} />
+    {noIndex && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
   </head>
   <body

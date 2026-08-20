@@ -23,6 +23,19 @@ export const seo = defineType({
       validation: (rule) => rule.max(160).warning('Möglichst unter 160 Zeichen halten'),
     }),
     defineField({
+      name: 'noIndex',
+      title: 'Von Suchmaschinen ausschließen',
+      type: 'boolean',
+      description:
+        'Auf einer Seite: diese Seite erscheint nicht in Suchergebnissen. In den ' +
+        'Website-Einstellungen: die gesamte Website wird ausgeschlossen.',
+      // Inverted on purpose. `initialValue` applies only to newly created
+      // documents, so a positively phrased "indexieren" checkbox would read as
+      // `undefined` on every document that already exists and would take the
+      // whole site out of Google on the next build. Absent means indexed.
+      initialValue: false,
+    }),
+    defineField({
       name: 'ogImage',
       title: 'Vorschaubild',
       type: 'image',

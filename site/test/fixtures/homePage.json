@@ -1,5 +1,5 @@
 {
-  "seo": {"title": null, "description": null, "ogImage": null},
+  "seo": {"title": null, "description": null, "noIndex": false, "ogImage": null},
   "pageBuilder": [
     {
       "_key": "hero1",

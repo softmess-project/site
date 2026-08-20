@@ -25,7 +25,7 @@ export type Seo = NonNullable<Page['seo']>
 
 const USE_FIXTURES = process.env.SANITY_FIXTURES === '1'
 
-const SEO_PROJECTION = `seo{title, description, ogImage{alt, asset}}`
+const SEO_PROJECTION = `seo{title, description, noIndex, ogImage{alt, asset}}`
 
 // A link resolves to the same `{label, href}` shape wherever it appears — a
 // button, a nav entry, a rich-text annotation — so the components never learn
@@ -92,9 +92,32 @@ export const HOME_PAGE_QUERY = defineQuery(`
   *[_id == "homePage" && _type == "homePage"][0]{${SEO_PROJECTION}, ${PAGE_BUILDER_PROJECTION}}
 `)
 
+// What makes a page a route, shared rather than restated: PAGE_SLUGS_QUERY
+// enumerates the routes to build and SITEMAP_QUERY the routes to advertise, and
+// the sitemap is only ever correct if those two sets differ by the exclusion
+// flag and nothing else. Add a condition here — a second document type, a
+// publication gate — and both follow. Same reasoning as LINK_FILTER above.
+const PAGE_ROUTE_FILTER = `_type == "page" && defined(slug.current)`
+
 export const PAGE_SLUGS_QUERY = defineQuery(`
-  *[_type == "page" && defined(slug.current)].slug.current
+  *[${PAGE_ROUTE_FILTER}].slug.current
 `)
+
+// Everything the sitemap needs, in one round trip and as one complete answer.
+// Returning just the slugs would hand out half the exclusion rule — the page's
+// own flag, without the site-wide switch — and the next consumer would silently
+// ignore the switch.
+//
+// `!= true`, not `== false`: the field is absent on every document written
+// before it existed, and absent must mean indexed. Verified against groq-js —
+// an absent `seo.noIndex`, and a document carrying no `seo` at all, both
+// survive the filter. `coalesce` does the same job for the two singletons,
+// where the value is read rather than filtered on.
+export const SITEMAP_QUERY = defineQuery(`{
+  "siteExcluded": coalesce(*[_id == "siteSettings" && _type == "siteSettings"][0].seo.noIndex, false),
+  "homeExcluded": coalesce(*[_id == "homePage" && _type == "homePage"][0].seo.noIndex, false),
+  "slugs": *[${PAGE_ROUTE_FILTER} && seo.noIndex != true].slug.current
+}`)
 
 export const PAGE_QUERY = defineQuery(`
   *[_type == "page" && slug.current == $slug][0]{
@@ -130,6 +153,26 @@ export async function getPageSlugs(client: SanityClient): Promise<string[]> {
     return (pagesFixture as Array<{slug: {current: string}}>).map((p) => p.slug.current)
   }
   return (await client.fetch(PAGE_SLUGS_QUERY)) as string[]
+}
+
+// `slugs` is typed string[] rather than the query result's `Array<string | null>`
+// for the same reason getPageSlugs is: PAGE_ROUTE_FILTER already required the
+// slug to be defined. Without the cast the sitemap would happily emit `/null`.
+export async function getSitemap(
+  client: SanityClient,
+): Promise<{siteExcluded: boolean; homeExcluded: boolean; slugs: string[]}> {
+  if (USE_FIXTURES) {
+    return {
+      siteExcluded: siteSettingsFixture.seo.noIndex,
+      homeExcluded: homePageFixture.seo.noIndex,
+      slugs: pagesFixture.filter((p) => p.seo.noIndex !== true).map((p) => p.slug.current),
+    }
+  }
+  return (await client.fetch(SITEMAP_QUERY)) as {
+    siteExcluded: boolean
+    homeExcluded: boolean
+    slugs: string[]
+  }
 }
 
 export async function getPage(client: SanityClient, slug: string): Promise<Page | null> {

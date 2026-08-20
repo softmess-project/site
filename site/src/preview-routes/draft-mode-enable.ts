@@ -36,11 +36,28 @@ export const GET: APIRoute = async ({request, cookies, redirect}) => {
   // The value is the secret itself: on workers.dev there is no perimeter in
   // front of this Worker, so the cookie is what separates a visitor from every
   // unpublished draft. See src/lib/draft.ts.
+  //
+  // `partitioned` (CHIPS) is what actually made Presentation work. SameSite=None
+  // only permits a cross-site cookie; it does not stop the browser blocking it
+  // as third-party, which Safari does always and Chrome does in Incognito and
+  // whenever the user has turned third-party cookies off. The handshake then
+  // redirected correctly and the cookie simply vanished, so draft mode stayed
+  // off, Base.astro rendered no visual-editing island — the page shipped no
+  // script at all — and Presentation sat on "Could not connect to the preview".
+  // Every server-side check passed throughout, which is why this took so long
+  // to find: the failure was entirely in the browser's cookie jar.
+  //
+  // Partitioning keys the cookie to the embedding site (studio.softmess.de), so
+  // it is exempt from that blocking, and it tightens the gate rather than
+  // loosening it — the cookie is no longer sent from any other embedder.
+  // Tied to `secure` because Partitioned requires Secure, and local preview runs
+  // over http where the cookie is same-site anyway and needs none of this.
   cookies.set(DRAFT_COOKIE, secret, {
     path: '/',
     httpOnly: true,
     sameSite: secure ? 'none' : 'lax',
     secure,
+    partitioned: secure,
   })
 
   return redirect(redirectTo, 307)

@@ -1,4 +1,5 @@
-import {describe, expect, it} from 'vitest'
+import {afterAll, describe, expect, it} from 'vitest'
+import {createClient} from '@sanity/client'
 import {vercelStegaCleanAll} from '@sanity/client/stega'
 
 // Assertions that can only be made against deployed hosts, so they cannot live
@@ -46,6 +47,18 @@ function stegaCount(html: string): number {
 // deployed Worker's secret to additionally prove the positive case — that a
 // correct cookie really does turn drafts on — which otherwise skips.
 const DRAFT_SECRET = process.env.PREVIEW_DRAFT_SECRET
+
+// The handshake's *success* path needs a real `sanity.previewUrlSecret` in the
+// dataset, which means a write token. Everything below skips without one, so
+// the gate still runs for anyone who only has the hostnames.
+const API_TOKEN = process.env.SANITY_API_TOKEN
+const PROJECT_ID = process.env.SANITY_PROJECT_ID
+const DATASET = process.env.SANITY_DATASET
+
+// A fixed id rather than a random one, so an interrupted run leaves at most one
+// stale document behind and the next run replaces it instead of accumulating.
+// Sanity's own secrets are `drafts.<uuid>`, so this cannot collide with one.
+const PROBE_ID = 'sanity-preview-url-secret.live-test'
 
 function get(path: string, cookie?: string) {
   return fetch(`${PREVIEW_URL}${path}`, {
@@ -102,6 +115,83 @@ describe.skipIf(!LIVE)('the deployed preview Worker', () => {
     expect((await get('/api/diag')).status).toBe(404)
   })
 })
+
+// The link nothing tested, and the one that was actually broken. Every
+// assertion above uses fetch(), which has no cookie policy at all, so the whole
+// gate stayed green while Presentation could not open a preview in any browser:
+// the cookie was rejected by the *browser*, not by this Worker.
+//
+// The Studio frames the preview from studio.softmess.de while the Worker runs on
+// workers.dev, so the draft cookie is a third-party cookie. SameSite=None is
+// necessary but not sufficient — without `Partitioned` it is dropped wherever
+// third-party cookies are blocked, which is Safari and Chrome's Incognito by
+// default. Draft mode then stays off, Base.astro renders no visual-editing
+// island, and Presentation times out on "Could not connect to the preview".
+//
+// Attributes are asserted as a set, because getting any one of them wrong
+// reproduces the same invisible failure.
+describe.skipIf(!LIVE || !API_TOKEN || !PROJECT_ID || !DATASET)(
+  'the deployed draft-mode handshake',
+  () => {
+    const client = createClient({
+      projectId: PROJECT_ID!,
+      dataset: DATASET!,
+      apiVersion: '2026-08-15',
+      useCdn: false,
+      token: API_TOKEN,
+    })
+
+    // A secret this test owns, so it never depends on one the Studio happens to
+    // have left behind — those expire after an hour (SECRET_TTL) and would make
+    // this fail for a reason that is not the code's fault.
+    const secret = `live-test-${Math.random().toString(36).slice(2)}`
+
+    afterAll(async () => {
+      await client.delete(PROBE_ID).catch(() => {})
+    })
+
+    async function handshake() {
+      await client.createOrReplace({
+        _id: PROBE_ID,
+        _type: 'sanity.previewUrlSecret',
+        secret,
+        studioUrl: 'https://studio.softmess.de',
+      })
+      const params = new URLSearchParams({
+        'sanity-preview-secret': secret,
+        'sanity-preview-pathname': '/',
+      })
+      return get(`/api/draft-mode/enable?${params}`)
+    }
+
+    it('accepts a real secret and redirects to the requested path', async () => {
+      const response = await handshake()
+      expect(response.status, await response.text().catch(() => '')).toBe(307)
+      expect(response.headers.get('location')).toBe('/')
+    })
+
+    it('sets a draft cookie that survives a cross-site iframe', async () => {
+      const cookie = (await handshake()).headers.get('set-cookie') ?? ''
+
+      expect(cookie).toContain('sanity-draft-mode=')
+      // Sent at all from inside a frame on another site.
+      expect(cookie).toMatch(/SameSite=None/i)
+      // Required by the spec alongside SameSite=None, and dropped without it.
+      expect(cookie).toMatch(/;\s*Secure/i)
+      // CHIPS. This is the attribute whose absence broke Presentation.
+      expect(cookie).toMatch(/;\s*Partitioned/i)
+      // Not readable by page scripts; the overlay never needs it.
+      expect(cookie).toMatch(/HttpOnly/i)
+    })
+
+    it.skipIf(!DRAFT_SECRET)('issues the secret the Worker actually accepts', async () => {
+      // Closes the loop: the cookie this handshake hands out is the same value
+      // that turns drafts on above, rather than merely being well-formed.
+      const cookie = (await handshake()).headers.get('set-cookie') ?? ''
+      expect(cookie).toContain(`sanity-draft-mode=${DRAFT_SECRET}`)
+    })
+  },
+)
 
 describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
   it('names no third-party origin in its HTML', async () => {

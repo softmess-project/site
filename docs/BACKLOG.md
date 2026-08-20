@@ -2,7 +2,7 @@
 
 State after the backlog-clearing pass on `feat/page-builder`.
 
-`pnpm verify` is green: 18 studio tests, 49 site tests, 12 skipped (the live gate).
+`pnpm verify` is green: 18 studio tests, 49 site tests, 15 skipped (the live gate).
 `pnpm build:site:deploy` **passes** — the real-content gate no longer blocks.
 
 One thing is open, and it is not a code problem.
@@ -106,6 +106,10 @@ Moving cost the Cloudflare Access perimeter, which cannot bind to workers.dev.
 The draft-mode cookie carries `PREVIEW_DRAFT_SECRET` instead of a bare `1` to
 replace it (`site/src/lib/draft.ts`), and `site/test/live.test.ts` asserts both
 that a forged cookie is refused and that the real secret is honoured.
+
+It cost a second thing that took much longer to spot: the cookie stopped being
+same-site with the Studio, which broke Presentation in every browser until it
+was partitioned. See §3.6.
 
 Filed with Sanity — this account has no Cloudflare support channel, and their
 API endpoints not offering `X25519MLKEM768` is the property that correlates
@@ -405,6 +409,56 @@ retired the old §4.2 and §4.3 (orphaned `legalPage` docs, footer not relinked)
 - The duplicated variant-map comment was already gone; the explanation lives in
   `variants.ts`.
 - Adding a third call-to-action already didn't fail the build.
+
+### 3.6 Presentation showed a generic error in every browser — fixed
+
+The symptom was "An error occurred / Could not connect to the preview", with
+`Unable to connect to visual editing` in the console, in Safari, Chrome and
+Chrome Incognito alike.
+
+**Nothing was wrong with the server, and that is what made it expensive.** All of
+this was measured against the deployed hosts before the cause was found: the
+handshake returned `307` with a `Set-Cookie`; that cookie really did turn on
+drafts and emit stega; every one of the five client chunks served with hashes
+matching a local build; the island module loaded under a DOM shim without
+throwing; the Worker had all four bindings; the Studio bundle inlined the right
+origin; `allowOrigins` parsed to `URLPattern`s that match the frame origin; and
+the Studio had successfully created preview secrets minutes before.
+
+The cookie was being discarded by the **browser**. The Studio frames the preview
+from `studio.softmess.de` while the Worker runs on `workers.dev`, so the draft
+cookie is a third-party cookie. `SameSite=None` lets a cookie be *sent*
+cross-site; it does not stop the browser blocking it as third-party, which
+Safari does unconditionally and Chrome does in Incognito and wherever the user
+has turned third-party cookies off. Draft mode therefore stayed off,
+`Base.astro` rendered no visual-editing island — the page shipped **no script at
+all** — and Presentation timed out waiting for a connection that could never
+come.
+
+The fix is `partitioned: secure` on the cookie (CHIPS), in
+`site/src/preview-routes/draft-mode-enable.ts`. Partitioning keys the cookie to
+the embedding site, which exempts it from that blocking, and it *narrows* the
+gate rather than widening it: the cookie is no longer sent from any other
+embedder. Caveat worth keeping: CHIPS needs Safari 18.4 or newer. If §1.1 is
+ever fixed and preview moves back onto a `softmess.de` subdomain, the cookie is
+same-site again and none of this matters.
+
+**Why the live gate did not catch it, and what changed.** `fetch()` has no
+cookie policy, so every assertion in `live.test.ts` passed against a Presentation
+tool that was broken for editors — and nothing exercised the handshake's
+*success* path at all. It now mints a real `sanity.previewUrlSecret`, drives the
+handshake against the deployed Worker, asserts `307` plus all four cookie
+attributes as a set, and deletes the document afterwards. Verified as a real
+test: it fails on the missing `Partitioned` against the pre-fix deploy. It needs
+`SANITY_API_TOKEN` and skips without one.
+
+**One loose end, deliberately not acted on.** The preview origin
+`https://softmess-preview.9dev.workers.dev` is not in the project's CORS
+allowlist, while the dead `https://preview.softmess.de` still is. That is stale
+rather than broken: the preview client bundle names no Sanity API host at all —
+checked — because every query runs server-side in the Worker, so the frame never
+makes a browser-side call that CORS could reject. Adding the entry would be
+tidying, not a fix; removing the dead one is the more useful half.
 
 ---
 

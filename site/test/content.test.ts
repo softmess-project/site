@@ -1,7 +1,11 @@
 import {describe, expect, it} from 'vitest'
 import {getHomePage, getPage, getPageSlugs, getSiteSettings} from '../src/lib/content'
 import {publishedClient} from '../src/lib/sanity'
-import {srcFor} from '../src/lib/image'
+import {socialSrcFor, srcFor} from '../src/lib/image'
+
+// Must match the flag the fixture build ran with — `pnpm test` sets
+// PROXY_IMAGES=1, and vitest.config.ts forwards it into the test env.
+const PROXIED = process.env.PROXY_IMAGES === '1'
 
 describe('content layer in fixture mode', () => {
   it('returns site settings from fixtures', async () => {
@@ -55,5 +59,44 @@ describe('content layer in fixture mode', () => {
     expect(url).toContain('w=380')
     expect(url).toContain('h=475')
     expect(url).toContain('fm=webp')
+  })
+
+  it('builds social images as JPEG, never proxied and never WebP', () => {
+    // WebP is right for an on-page <img> and wrong for og:image: LinkedIn's
+    // and Facebook's scrapers do not reliably render a WebP card, and the
+    // failure is silent — the tag is present, the URL resolves, and the card
+    // shows no image.
+    const url = socialSrcFor({
+      _type: 'image',
+      asset: {
+        _type: 'reference',
+        _ref: 'image-0000000000000000000000000000000000000000-966x1207-jpg',
+      },
+    })
+    expect(url).toContain('fm=jpg')
+    expect(url).not.toContain('fm=webp')
+    expect(url).toContain('w=1200')
+    expect(url).toContain('h=630')
+    // Absolute even under PROXY_IMAGES=1, which `pnpm test` sets: a scraper is
+    // not a visitor, so routing it through /cdn/* buys no privacy — and that
+    // route 525s on the zone (docs/BACKLOG.md §1.1), which would make every
+    // card imageless.
+    expect(url.startsWith('https://cdn.sanity.io/')).toBe(true)
+  })
+
+  it('keeps on-page images WebP and still honours the proxy flag', () => {
+    const url = srcFor(
+      {
+        _type: 'image',
+        asset: {
+          _type: 'reference',
+          _ref: 'image-0000000000000000000000000000000000000000-966x1207-jpg',
+        },
+      },
+      380,
+      480,
+    )
+    expect(url).toContain('fm=webp')
+    expect(url.startsWith(PROXIED ? '/cdn/' : 'https://cdn.sanity.io/')).toBe(true)
   })
 })

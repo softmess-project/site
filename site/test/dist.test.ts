@@ -127,8 +127,15 @@ describe('built pages', () => {
   it('asks for a large image preview where indexed, and excludes where not', () => {
     const robots = (page: string) =>
       doc(page).querySelector('meta[name="robots"]')?.getAttribute('content')
-    expect(robots('index.html')).toBe('max-image-preview:large')
-    expect(robots('impressum/index.html')).toBe('max-image-preview:large')
+    // *Which* content pages are indexed is an editor switch — seo.noIndex, per
+    // page and site-wide — so the deploy run asserts the shape only: every page
+    // carries one of the two values the code can emit, and neither is missing.
+    // Pinning the imprint as indexed here failed the deploy the day it was
+    // excluded in the Studio. The fixture run still pins which page gets which,
+    // below and in the sitemap test.
+    for (const page of PAGES) {
+      expect(robots(page), page).toMatch(/^(max-image-preview:large|noindex)$/)
+    }
     // The 404 excludes itself regardless of content.
     expect(robots('404.html')).toBe('noindex')
   })

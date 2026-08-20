@@ -80,6 +80,60 @@ describe('built pages', () => {
       )
     }
   })
+
+  it('emits the Open Graph tags every scraper reads', () => {
+    for (const page of ['index.html', 'impressum/index.html', 'datenschutz/index.html']) {
+      const d = doc(page)
+      const prop = (name: string) =>
+        d.querySelector(`meta[property="${name}"]`)?.getAttribute('content')
+      expect(prop('og:url'), page).toBe(
+        d.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+      )
+      expect(prop('og:site_name'), page).toBeTruthy()
+      expect(prop('og:locale'), page).toMatch(/^(en_US|de_DE)$/)
+      expect(prop('og:type'), page).toBe('website')
+    }
+  })
+
+  it.skipIf(REAL_CONTENT)('declares the social image as a JPEG of known size', () => {
+    // The box is requested, so width/height/type are facts rather than hints —
+    // and a WebP og:image renders as no image at all on LinkedIn and Facebook.
+    for (const page of ['index.html', 'impressum/index.html']) {
+      const d = doc(page)
+      const prop = (name: string) =>
+        d.querySelector(`meta[property="${name}"]`)?.getAttribute('content')
+      expect(prop('og:image'), page).toContain('fm=jpg')
+      expect(prop('og:image'), page).not.toContain('fm=webp')
+      expect(prop('og:image:width'), page).toBe('1200')
+      expect(prop('og:image:height'), page).toBe('630')
+      expect(prop('og:image:type'), page).toBe('image/jpeg')
+    }
+  })
+
+  it.skipIf(REAL_CONTENT)('resolves each page language through the fall-through', () => {
+    // The fixtures set 'en' on the home page, 'de' on the imprint, and nothing
+    // at all on datenschutz or siteSettings — so the third case proves the
+    // code default rather than a stored value.
+    expect(doc('index.html').documentElement.getAttribute('lang')).toBe('en')
+    expect(doc('impressum/index.html').documentElement.getAttribute('lang')).toBe('de')
+    expect(doc('datenschutz/index.html').documentElement.getAttribute('lang')).toBe('de')
+  })
+
+  it('asks for a large image preview where indexed, and excludes where not', () => {
+    const robots = (page: string) =>
+      doc(page).querySelector('meta[name="robots"]')?.getAttribute('content')
+    expect(robots('index.html')).toBe('max-image-preview:large')
+    expect(robots('impressum/index.html')).toBe('max-image-preview:large')
+    // The 404 excludes itself regardless of content.
+    expect(robots('404.html')).toBe('noindex')
+  })
+
+  it.skipIf(REAL_CONTENT)('honours the per-page exclusion switch', () => {
+    // The fixture sets noIndex on datenschutz only.
+    expect(
+      doc('datenschutz/index.html').querySelector('meta[name="robots"]')?.getAttribute('content'),
+    ).toBe('noindex')
+  })
 })
 
 describe('home page', () => {
@@ -318,7 +372,9 @@ describe('crawler directives', () => {
     const excluded = doc('datenschutz/index.html').querySelector('meta[name="robots"]')
     expect(excluded?.getAttribute('content')).toBe('noindex')
     for (const page of ['index.html', 'impressum/index.html']) {
-      expect(doc(page).querySelector('meta[name="robots"]'), page).toBeNull()
+      expect(doc(page).querySelector('meta[name="robots"]')?.getAttribute('content'), page).toBe(
+        'max-image-preview:large',
+      )
     }
   })
 })

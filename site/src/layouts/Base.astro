@@ -8,36 +8,41 @@ import '../styles/theme.css'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import type {Seo, SiteSettings} from '../lib/content'
-import {srcFor} from '../lib/image'
+import {buildSeo, type OgType} from '../lib/seo'
 
 interface Props {
   title: string
   // The document's own metadata, passed whole rather than field by field: every
-  // fall-through to the site-wide default is decided here, so adding a field to
-  // `seo` does not mean threading a prop through all three pages again. `title`
-  // stays with the caller — its fallback is a different sentence per page.
+  // fall-through to the site-wide default is decided in lib/seo.ts, so adding a
+  // field to `seo` does not mean threading a prop through all three pages
+  // again. `title` stays with the caller — its fallback is a different sentence
+  // per page.
   seo?: Seo | null
   settings: SiteSettings
+  /** Only the 404 passes this: a route excluding itself, whatever the content
+   *  says. The editor-facing switches live on `seo`. */
+  noIndex?: boolean
+  /** 'website' for everything that exists today. A post page passes 'article'
+   *  and nothing here changes. */
+  ogType?: OgType
+  /** An array, not one object, because a post page emits Article *and*
+   *  BreadcrumbList together. */
+  jsonLd?: object[]
 }
 
-const {title, seo, settings} = Astro.props
-const metaDescription = seo?.description ?? settings.seo?.description ?? ''
+const {title, seo, settings, noIndex, ogType, jsonLd} = Astro.props
 
-// og:image must be absolute — a relative one is silently dropped by every
-// scraper. srcFor already returns an absolute cdn.sanity.io URL unless
-// PROXY_IMAGES rewrites it onto our own origin, so resolve against Astro.site
-// either way. 1200×630 is the size Open Graph consumers crop to.
-const socialImage = seo?.ogImage?.asset ? seo.ogImage : settings.seo?.ogImage
-const socialImageUrl = socialImage?.asset
-  ? new URL(srcFor(socialImage, 1200, 630), Astro.site).href
-  : null
-
-// Three independent reasons to keep a page out of search results: the preview
-// Worker (editor-only, and its robots.txt already says Disallow), the site-wide
-// switch on siteSettings, and the page's own. Booleans carry no stega payload,
-// so these need no stegaClean. `noindex` alone, without `nofollow` — an excluded page may still
-// link to pages that should be crawled.
-const noIndex = import.meta.env.PREVIEW || !!settings.seo?.noIndex || !!seo?.noIndex
+const meta = buildSeo({
+  title,
+  seo,
+  settings,
+  pathname: Astro.url.pathname,
+  // Typed `URL | undefined`, but astro.config.mjs sets `site` unconditionally
+  // for both builds.
+  site: Astro.site!,
+  noIndex,
+  ogType,
+})
 
 const {VisualEditing} = import.meta.env.PREVIEW
   ? await import('@sanity/astro/visual-editing')
@@ -45,22 +50,36 @@ const {VisualEditing} = import.meta.env.PREVIEW
 ---
 
 <!doctype html>
-<html lang="de">
+<html lang={meta.lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    {metaDescription && <meta name="description" content={metaDescription} />}
-    <meta property="og:title" content={title} />
-    {metaDescription && <meta property="og:description" content={metaDescription} />}
-    <meta property="og:type" content="website" />
-    {socialImageUrl && <meta property="og:image" content={socialImageUrl} />}
-    {socialImageUrl && socialImage?.alt && (
-      <meta property="og:image:alt" content={socialImage.alt} />
-    )}
-    <meta name="twitter:card" content={socialImageUrl ? 'summary_large_image' : 'summary'} />
-    {noIndex && <meta name="robots" content="noindex" />}
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
+    <title>{meta.title}</title>
+    {meta.description && <meta name="description" content={meta.description} />}
+    <link rel="canonical" href={meta.canonical} />
+    <meta name="robots" content={meta.robots} />
+
+    <meta property="og:title" content={meta.title} />
+    {meta.description && <meta property="og:description" content={meta.description} />}
+    <meta property="og:type" content={meta.ogType} />
+    <meta property="og:url" content={meta.canonical} />
+    <meta property="og:site_name" content={meta.siteName} />
+    <meta property="og:locale" content={meta.ogLocale} />
+    {
+      meta.image && (
+        <>
+          <meta property="og:image" content={meta.image.url} />
+          <meta property="og:image:width" content={String(meta.image.width)} />
+          <meta property="og:image:height" content={String(meta.image.height)} />
+          <meta property="og:image:type" content={meta.image.type} />
+          {meta.image.alt && <meta property="og:image:alt" content={meta.image.alt} />}
+        </>
+      )
+    }
+    <meta name="twitter:card" content={meta.image ? 'summary_large_image' : 'summary'} />
+
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
   <body
     class="relative flex min-h-dvh flex-col overflow-x-hidden bg-bg font-sans text-ink"

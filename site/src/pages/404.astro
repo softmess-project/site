@@ -5,7 +5,7 @@ import {getSiteSettings} from '../lib/content'
 const settings = await getSiteSettings(Astro.locals.sanity)
 ---
 
-<Base title={`${settings.notFound?.heading} · ${settings.brand}`} settings={settings}>
+<Base title={`${settings.notFound?.heading} · ${settings.brand}`} settings={settings} noIndex>
   <main class="relative flex-1 px-[clamp(24px,6vw,88px)] py-8">
     <h1 class="mb-6 font-display text-[length:var(--text-page-title)] font-normal text-accent">
       {settings.notFound?.heading}

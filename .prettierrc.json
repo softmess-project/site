@@ -2,5 +2,12 @@
   "bracketSpacing": false,
   "printWidth": 100,
   "semi": false,
-  "singleQuote": true
+  "singleQuote": true,
+  "plugins": ["prettier-plugin-astro"],
+  "overrides": [
+    {
+      "files": "*.jsonc",
+      "options": {"trailingComma": "none"}
+    }
+  ]
 }

@@ -3,10 +3,10 @@
 The [softmess project](https://softmess.de) site. Content lives in Sanity;
 the site is a static Astro build on Cloudflare Workers.
 
-| | |
-| --- | --- |
-| Site | https://softmess.de |
-| Studio | https://studio.softmess.de |
+|        |                                                             |
+| ------ | ----------------------------------------------------------- |
+| Site   | https://softmess.de                                         |
+| Studio | https://studio.softmess.de                                  |
 | Design | `docs/superpowers/specs/2026-08-15-softmess-site-design.md` |
 
 ## Develop

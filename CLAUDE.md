@@ -43,13 +43,13 @@ Content lives in Sanity project `85i3osnk`, dataset `production`.
 `PREVIEW` decides which, and it is inlined at build time via
 `vite.define`, so the losing branch is eliminated from the bundle entirely:
 
-| | static (`PREVIEW` unset) | preview (`PREVIEW=1`) |
-| --- | --- | --- |
-| output | `static` → `dist/` | `server` → `dist/server` + `dist/client` |
-| Worker | `softmess` on softmess.de | `softmess-preview` on workers.dev |
-| perspective | `published` | `drafts` + stega source maps |
-| JavaScript | none at all | React island for the visual-editing overlay |
-| wrangler config | `wrangler.jsonc` | `wrangler.preview.jsonc` |
+|                 | static (`PREVIEW` unset)  | preview (`PREVIEW=1`)                       |
+| --------------- | ------------------------- | ------------------------------------------- |
+| output          | `static` → `dist/`        | `server` → `dist/server` + `dist/client`    |
+| Worker          | `softmess` on softmess.de | `softmess-preview` on workers.dev           |
+| perspective     | `published`               | `drafts` + stega source maps                |
+| JavaScript      | none at all               | React island for the visual-editing overlay |
+| wrangler config | `wrangler.jsonc`          | `wrangler.preview.jsonc`                    |
 
 The public site ships **no client JavaScript and no third-party subresource** —
 `test/dist.test.ts` enforces both. Fonts are self-hosted via `@fontsource/*`
@@ -174,10 +174,20 @@ rather than arbitrary values, and the semantic color names (`bg-bg`, `text-ink`,
 
 ## Conventions
 
-- Prettier: no semicolons, single quotes, no bracket spacing, 100 cols.
+- Prettier: no semicolons, single quotes, no bracket spacing, 100 cols. One
+  config, `.prettierrc.json` at the root, and `pnpm verify` fails on any drift —
+  `pnpm format` fixes it. `.astro` needs `prettier-plugin-astro`, which the
+  config loads. `.prettierignore` excludes build output, the generated
+  `sanity.types.ts` (typegen already formats it, and verify fails on any diff in
+  it, so a second writer could deadlock), and `.superpowers/`/`docs/superpowers/`
+  session artifacts.
+- `*.jsonc` is pinned to `trailingComma: "none"`. Prettier's default adds them,
+  wrangler tolerates them, and `dist.test.ts` parses `wrangler.jsonc` with strict
+  `JSON.parse` after stripping comments — so the deploy config stays inside
+  strict JSON.
 - **All editor-facing strings are German** — schema titles, descriptions,
   validation messages, build-failure messages. Code and comments are English.
-- Comments here explain *why*, usually recording a failure that was actually
+- Comments here explain _why_, usually recording a failure that was actually
   observed. They are expensive knowledge; don't delete them while editing
   nearby code.
 - `docs/BACKLOG.md` is the live status of what's blocked, answered, and

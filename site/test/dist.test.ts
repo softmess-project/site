@@ -250,7 +250,9 @@ describe('home page', () => {
   })
 
   it.skipIf(REAL_CONTENT)('renders one button per action, first one filled', () => {
-    const links = [...doc('index.html').querySelectorAll('main > section:first-child > div > div > a')]
+    const links = [
+      ...doc('index.html').querySelectorAll('main > section:first-child > div > div > a'),
+    ]
     expect(links).toHaveLength(2)
     expect(links[0].getAttribute('class')).toContain('bg-accent')
     expect(links[1].getAttribute('href')).toBe('mailto:hi@softmess.de')
@@ -312,16 +314,17 @@ describe('promises the site makes in its own privacy policy', () => {
       const refs = [
         // rel=canonical is an absolute self-reference, not a fetched
         // subresource — it points at https://softmess.de by design.
-        ...[...d.querySelectorAll('link[href]:not([rel="canonical"])')].map(
-          (n) => n.getAttribute('href')!,
+        ...[...d.querySelectorAll('link[href]:not([rel="canonical"])')].map((n) =>
+          n.getAttribute('href')!,
         ),
-        ...[...d.querySelectorAll('img[src], script[src]')].map(
-          (n) => n.getAttribute('src')!,
-        ),
+        ...[...d.querySelectorAll('img[src], script[src]')].map((n) => n.getAttribute('src')!),
         ...[...d.querySelectorAll('[srcset]')].flatMap((n) =>
           // Candidates are comma-space separated; a plain split(',') breaks on
           // the literal commas inside a cropped image URL's `rect=x,y,w,h`.
-          n.getAttribute('srcset')!.split(/,\s+/).map((s) => s.trim().split(/\s+/)[0]),
+          n
+            .getAttribute('srcset')!
+            .split(/,\s+/)
+            .map((s) => s.trim().split(/\s+/)[0]),
         ),
       ]
       for (const ref of refs) {
@@ -430,10 +433,7 @@ describe('trailing-slash convention', () => {
   // Cloudflare's asset router actually serves must all agree — otherwise
   // every page is split across two URLs for search engines (dropTest §4).
   it('matches the canonical tag against the Workers asset router config', () => {
-    const wrangler = readFileSync(
-      join(import.meta.dirname, '..', 'wrangler.jsonc'),
-      'utf8',
-    )
+    const wrangler = readFileSync(join(import.meta.dirname, '..', 'wrangler.jsonc'), 'utf8')
     // wrangler.jsonc is JSONC (comments allowed) — strip line comments before parsing.
     const json = JSON.parse(wrangler.replace(/\/\/.*$/gm, ''))
     expect(json.assets.html_handling).toBe('drop-trailing-slash')
@@ -485,14 +485,17 @@ describe('page builder', () => {
     }
   })
 
-  it.skipIf(REAL_CONTENT)('maps variants to classes rather than falling through to defaults', () => {
-    // The sand-background imageText block proves the variant reached a class
-    // instead of silently defaulting. The selector must be anchored to the
-    // block's own <section>: a bare `.bg-sand-200` also matches a decorative
-    // blob in the page chrome, which sits outside <main> and would make this
-    // assertion pass in a build that has no imageText block at all.
-    expect(doc('index.html').querySelector('main > section.bg-sand-200')).not.toBeNull()
-  })
+  it.skipIf(REAL_CONTENT)(
+    'maps variants to classes rather than falling through to defaults',
+    () => {
+      // The sand-background imageText block proves the variant reached a class
+      // instead of silently defaulting. The selector must be anchored to the
+      // block's own <section>: a bare `.bg-sand-200` also matches a decorative
+      // blob in the page chrome, which sits outside <main> and would make this
+      // assertion pass in a build that has no imageText block at all.
+      expect(doc('index.html').querySelector('main > section.bg-sand-200')).not.toBeNull()
+    },
+  )
 
   it('keeps the preview hostname out of the static build', () => {
     // PAGES stays HTML-only — it feeds doc() and the placeholder scan — so the
@@ -628,8 +631,7 @@ describe('webfinger', () => {
   const docs = (): {subject: string; aliases?: string[]; links: {rel: string; href: string}[]}[] =>
     JSON.parse(readFileSync(join(DIST, '.well-known', 'webfinger'), 'utf8'))
 
-  const bySubject = (local: string) =>
-    docs().find((d) => d.subject.startsWith(`acct:${local}@`))!
+  const bySubject = (local: string) => docs().find((d) => d.subject.startsWith(`acct:${local}@`))!
 
   it('publishes exactly the subjects the site claims, all at its own host', () => {
     const subjects = docs().map((d) => d.subject)
@@ -667,7 +669,10 @@ describe('webfinger', () => {
 
   it('offers a mailto contact on every subject', () => {
     for (const doc of docs()) {
-      expect(doc.links.some((l) => l.href.startsWith('mailto:')), doc.subject).toBe(true)
+      expect(
+        doc.links.some((l) => l.href.startsWith('mailto:')),
+        doc.subject,
+      ).toBe(true)
     }
   })
 })

@@ -77,21 +77,22 @@ const {VisualEditing} = import.meta.env.PREVIEW
     }
     <meta name="twitter:card" content={meta.image ? 'summary_large_image' : 'summary'} />
 
-    {/* Static files in public/, not content. The set is five artifacts with
-        five different preparation rules — a multi-resolution .ico, a 96px
-        favicon (Google wants a multiple of 48), an opaque 180px apple-touch
-        icon, and two maskable manifest icons that need their own safe-zone
-        padding — so it comes out of a generator in one pass rather than an
-        editor upload. /favicon.ico carries no <link>: its whole purpose is the
-        clients that request that path by convention without reading the HTML. */}
+    {
+      /* Static files in public/, not content. The set is five artifacts with
+         five different preparation rules — a multi-resolution .ico, a 96px
+         favicon (Google wants a multiple of 48), an opaque 180px apple-touch
+         icon, and two maskable manifest icons that need their own safe-zone
+         padding — so it comes out of a generator in one pass rather than an
+         editor upload. /favicon.ico carries no <link>: its whole purpose is
+         the clients that request that path by convention without reading the
+         HTML. */
+    }
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     {graph && <script type="application/ld+json" set:html={jsonLdScript(graph)} />}
   </head>
-  <body
-    class="relative flex min-h-dvh flex-col overflow-x-hidden bg-bg font-sans text-ink"
-  >
+  <body class="relative flex min-h-dvh flex-col overflow-x-hidden bg-bg font-sans text-ink">
     <div
       aria-hidden="true"
       class="pointer-events-none absolute -top-[22vw] -right-[20vw] aspect-square w-[clamp(280px,62vw,520px)] rounded-full bg-sand-200 opacity-55"

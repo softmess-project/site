@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pnpm install
 pnpm dev                 # studio :3333 + site :4321 (site in PREVIEW mode)
-pnpm verify              # the gate: typegen drift, studio lint/typecheck/tests, astro check, site tests
+pnpm verify              # the gate: typegen drift, lint both packages, studio typecheck/tests, astro check, site tests
 pnpm verify:live         # deployed-host assertions (LIVE=1); SITE_URL=… also checks the public site
 pnpm build:site          # static build from live Sanity (needs SANITY_API_TOKEN)
 pnpm build:site:deploy   # that build + the real-content gate (test/dist.test.ts with DIST_DIR=dist)
@@ -186,6 +186,14 @@ rather than arbitrary values, and the semantic color names (`bg-bg`, `text-ink`,
 
 ## Conventions
 
+- ESLint runs over both packages and `pnpm verify` fails on any warning
+  (`--max-warnings 0`). `studio/eslint.config.mjs` is `@sanity/eslint-config-studio`;
+  `site/eslint.config.mjs` is flat config with typescript-eslint plus
+  `eslint-plugin-astro`, which is what makes `.astro` files lintable at all —
+  without its parser they are unparseable, not merely unchecked. The
+  `eslint-sarif` job in `verify.yml` re-runs both and uploads the findings to
+  code scanning through `scripts/eslint-sarif.mjs`; that is reporting only,
+  since the gate has already failed by then.
 - Prettier: no semicolons, single quotes, no bracket spacing, 100 cols. One
   config, `.prettierrc.json` at the root, and `pnpm verify` fails on any drift —
   `pnpm format` fixes it. `.astro` needs `prettier-plugin-astro`, which the

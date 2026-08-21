@@ -654,7 +654,7 @@ while the zone can't reach `cdn.sanity.io`.
 ## Appendix — what to run
 
 ```bash
-pnpm verify              # offline gate: typegen drift, studio lint/typecheck/tests, astro check, site tests
+pnpm verify              # offline gate: typegen drift, lint both packages, studio typecheck/tests, astro check, site tests
 pnpm verify:live         # deployed-host assertions; SITE_URL=... to include the public site
 pnpm build:site          # build from live Sanity
 pnpm build:site:deploy   # the same build, then the real-content gate

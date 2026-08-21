@@ -365,7 +365,7 @@ describe('promises the site makes in its own privacy policy', () => {
     // invisible garbage that only Google's validator ever notices.
     const json = JSON.parse(blocks[0].textContent!)
     expect(json['@context'], page).toBe('https://schema.org')
-    return json['@graph'] as Record<string, any>[]
+    return json['@graph'] as Record<string, unknown>[]
   }
 
   it('emits a parseable Organization/WebSite/WebPage graph on every indexed page', () => {
@@ -382,7 +382,7 @@ describe('promises the site makes in its own privacy policy', () => {
       ).toEqual(['Organization', 'WebSite', 'WebPage'])
 
       const org = nodes[0]
-      expect(org.name.length, page).toBeGreaterThan(0)
+      expect(org.name, page).toEqual(expect.stringMatching(/\S/))
       expect(org.url, page).toMatch(/^https:\/\//)
     }
   })
@@ -396,7 +396,10 @@ describe('promises the site makes in its own privacy policy', () => {
       const refs = nodes.flatMap((node) =>
         Object.entries(node)
           .filter(([key]) => key !== '@id')
-          .map(([key, value]) => ({label: `${node['@type']}.${key}`, id: (value as any)?.['@id']}))
+          .map(([key, value]) => ({
+            label: `${node['@type']}.${key}`,
+            id: (value as {'@id'?: unknown} | null)?.['@id'],
+          }))
           .filter(({id}) => typeof id === 'string'),
       )
       // publisher and isPartOf at minimum, so an empty graph cannot pass here.

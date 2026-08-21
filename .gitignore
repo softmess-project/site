@@ -48,3 +48,8 @@ studio/schema.json
 # reads these into the workerd sandbox; process.env from the host doesn't
 # reach it the way it does for the static build).
 .dev.vars
+
+# eslint -> SARIF artifacts. Written by the eslint-sarif job in verify.yml, and
+# by hand when reproducing it locally.
+eslint-*.json
+*.sarif

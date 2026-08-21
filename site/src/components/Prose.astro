@@ -1,6 +1,6 @@
 ---
 import {PortableText} from 'astro-portabletext'
-import type {SomePortableTextComponents} from 'astro-portabletext/types'
+import type {PortableTextProps, SomePortableTextComponents} from 'astro-portabletext/types'
 import Heading from './prose/Heading.astro'
 import Paragraph from './prose/Paragraph.astro'
 import Link from './prose/Link.astro'
@@ -16,4 +16,4 @@ const components: SomePortableTextComponents = {
 }
 ---
 
-<PortableText value={value as any} components={components} />
+<PortableText value={value as PortableTextProps['value']} components={components} />

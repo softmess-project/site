@@ -18,3 +18,9 @@ site/src/sanity.types.ts
 # parse at all.
 .superpowers
 docs/superpowers
+
+# eslint -> SARIF artifacts. Generated, and prettier does not read .gitignore,
+# so `pnpm format:check` would otherwise fail on a local reproduction of the
+# eslint-sarif job.
+eslint-*.json
+*.sarif

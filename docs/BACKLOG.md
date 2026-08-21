@@ -600,6 +600,32 @@ Not built, and not because it was overlooked:
   at build time and Sanity's image API cannot do it. The per-page `ogImage`
   field covers the case that matters.
 
+### 4.4 Migrating from Prettier + ESLint to Biome
+
+Proposed for build speed, measured, and declined. The numbers do not support the
+premise: Prettier over the whole repo is 1.9s and ESLint on `studio/` is 1.7s,
+against a `pnpm verify` of ~23s. Linting and formatting are 16% of the gate — the
+cost is the fixture Astro build plus two vitest runs, and Biome touches neither.
+Best case it saves ~3s of 23s and nothing at all off `pnpm build:site`.
+
+Against that, three things measured against Biome 2.5.9 on this repo's own files:
+
+- **Markdown is not supported.** `biome check README.md` reports
+  `Checked 0 file`. `CLAUDE.md`, `README.md` and this file would stop being
+  formatted.
+- **`.astro` is parsed as frontmatter only, and the linter is wrong about it.**
+  On `Base.astro` it flags `Header` and `Footer` as `noUnusedImports` and `graph`
+  and `VisualEditing` as `noUnusedVariables` — all four are used in the template
+  it cannot see, and all are marked `FIXABLE`, so `--write` would delete the
+  imports the page renders with. The formatter likewise leaves template markup
+  alone, which is most of the file and the part `prettier-plugin-astro` was added
+  to cover.
+- **`@sanity/eslint-config-studio` has no Biome equivalent.** The Studio's rules
+  would simply be dropped.
+
+Revisit if Biome ships real Astro template support, or if this repo grows enough
+TypeScript that 1.9s becomes minutes. Neither is close.
+
 ---
 
 ## 5. The image proxy — built, tested, shipped dormant

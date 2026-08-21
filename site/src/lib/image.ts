@@ -25,12 +25,12 @@ function sameOrigin(url: string): string {
 export const SOCIAL_IMAGE = {width: 1200, height: 630, type: 'image/jpeg'} as const
 
 /** An absolute cdn.sanity.io URL, deliberately never rewritten onto our own
- *  origin. For consumers that are not a visitor's browser: social scrapers and
- *  the build-time favicon fetch. Proxying those buys no privacy — the request
- *  does not come from a visitor — while /cdn/* is exactly the route that gets
- *  HTTP 525 on this zone (docs/BACKLOG.md §1.1), so a proxied og:image would
- *  make every share card imageless. */
-export function cdnSrcFor(
+ *  origin for the one consumer that is not a visitor's browser: the social
+ *  scrapers. Proxying those buys no privacy — the request does not come from a
+ *  visitor — while /cdn/* is exactly the route that gets HTTP 525 on this zone
+ *  (docs/BACKLOG.md §1.1), so a proxied og:image would make every share card
+ *  imageless. */
+function cdnSrcFor(
   source: SanityImageSource,
   width: number,
   height: number,

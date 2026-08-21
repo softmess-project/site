@@ -160,41 +160,63 @@ describe('built pages', () => {
 })
 
 describe('site icon', () => {
-  // Prerendered from Sanity at build time, exactly like robots.txt and
-  // sitemap.xml, so a visitor fetches the icon from our own origin and never
-  // contacts Sanity for it. That matters most on the legal pages and the 404,
-  // which load no images at all.
-  const ICONS = ['favicon.png', 'apple-touch-icon.png']
+  const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+  // Static files in public/, copied verbatim into dist/. The set is what a
+  // single Sanity image field could not produce: an .ico is a multi-resolution
+  // container, and the manifest icons are `purpose: maskable`, which needs
+  // safe-zone padding baked in rather than a square crop.
+  const PNGS = {
+    'favicon.png': 96,
+    'apple-touch-icon.png': 180,
+    'web-app-manifest-192x192.png': 192,
+    'web-app-manifest-512x512.png': 512,
+  }
 
-  it('emits both icon files as real PNGs, whether or not one was uploaded', () => {
-    // Unconditional on purpose, real content included. The routes never 404:
-    // a prerendered endpoint writes its body to dist/ whatever the status and
-    // Cloudflare serves that file with 200, so "no icon yet" has to mean valid
-    // placeholder bytes rather than an empty file answering 200.
-    for (const icon of ICONS) {
-      const path = join(DIST, icon)
-      expect(existsSync(path), icon).toBe(true)
-      const magic = [...readFileSync(path).subarray(0, 8)]
-      expect(magic, icon).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  it('ships every PNG at the size its markup claims', () => {
+    for (const [name, size] of Object.entries(PNGS)) {
+      const path = join(DIST, name)
+      expect(existsSync(path), name).toBe(true)
+      const bytes = readFileSync(path)
+      expect([...bytes.subarray(0, 8)], name).toEqual(PNG_MAGIC)
+      // IHDR is the first chunk, so width/height sit at a fixed offset. A
+      // mismatch means the <link sizes> or the manifest is now lying, which no
+      // amount of valid PNG bytes would reveal.
+      expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)], name).toEqual([size, size])
     }
   })
 
-  it('links both from every page', () => {
+  it('serves a real multi-resolution /favicon.ico at the path clients guess', () => {
+    // Nothing links to it: the point is the crawlers and preview tools that
+    // request /favicon.ico by convention without reading the HTML. Without the
+    // file, Cloudflare's not_found_handling: "404-page" answers them with the
+    // 404 HTML page — which is why a redirect used to stand in for it here.
+    const bytes = readFileSync(join(DIST, 'favicon.ico'))
+    expect([...bytes.subarray(0, 4)]).toEqual([0x00, 0x00, 0x01, 0x00])
+    expect(bytes.readUInt16LE(4)).toBeGreaterThan(1)
+  })
+
+  it('declares a manifest whose icons all exist and are maskable', () => {
+    const manifest = JSON.parse(readFileSync(join(DIST, 'site.webmanifest'), 'utf8'))
+    expect(manifest.icons.length).toBeGreaterThan(0)
+    for (const icon of manifest.icons) {
+      // A maskable icon shown unpadded gets its edges cropped by the launcher,
+      // so the purpose and the padding have to travel together.
+      expect(icon.purpose, icon.src).toBe('maskable')
+      expect(existsSync(join(DIST, icon.src.replace(/^\//, ''))), icon.src).toBe(true)
+    }
+  })
+
+  it('links the icons and the manifest from every page', () => {
     for (const page of PAGES) {
       const d = doc(page)
       expect(d.querySelector('link[rel="icon"]')?.getAttribute('href'), page).toBe('/favicon.png')
       expect(d.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'), page).toBe(
         '/apple-touch-icon.png',
       )
+      expect(d.querySelector('link[rel="manifest"]')?.getAttribute('href'), page).toBe(
+        '/site.webmanifest',
+      )
     }
-  })
-
-  it('redirects the legacy /favicon.ico that crawlers still request', () => {
-    // Browsers honouring <link rel="icon"> never ask for it, but crawlers and
-    // preview tools do, and without the rule Cloudflare's
-    // not_found_handling: "404-page" answers them with the 404 HTML page.
-    const redirects = readFileSync(join(import.meta.dirname, '..', 'public', '_redirects'), 'utf8')
-    expect(redirects).toContain('/favicon.ico /favicon.png 301')
   })
 })
 

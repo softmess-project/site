@@ -5,12 +5,6 @@
   "instagram": "https://www.instagram.com/softmess.project/",
   "instagramHandle": "@softmess.project",
   "copyright": "© 2026 softmess project",
-  "icon": {
-    "asset": {
-      "_ref": "image-0000000000000000000000000000000000000000-512x512-png",
-      "_type": "reference"
-    }
-  },
   "backLabel": "← back",
   "instagramLabel": "instagram",
   "headerLinks": [],

@@ -236,6 +236,27 @@ describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
     expect((await response.json()).bomFormat).toBe('CycloneDX')
   })
 
+  it('types the web manifest, which no _headers rule declares', async () => {
+    // Deliberately left to the asset router: `.webmanifest` maps to
+    // application/manifest+json in the standard mime table, so a rule in
+    // public/_headers would only restate it. That inference is a property of
+    // the deployed router, though, and Chrome ignores a manifest served as
+    // text/plain — so the assumption gets checked here rather than assumed.
+    const response = await fetch(`${SITE_URL}/site.webmanifest`)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toMatch(/^application\/manifest\+json/)
+    expect((await response.json()).icons.length).toBeGreaterThan(0)
+  })
+
+  it('serves /favicon.ico rather than the 404 page', async () => {
+    // No <link> points here, so nothing in the HTML would reveal a regression:
+    // the crawlers that request this path by convention would silently get
+    // Cloudflare's not_found_handling: "404-page" HTML instead of an icon.
+    const response = await fetch(`${SITE_URL}/favicon.ico`)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toMatch(/icon|image/)
+  })
+
   // Whether `run_worker_first` actually routes /.well-known/webfinger to code
   // is a property of the deployed configuration and of nothing in the build
   // directory, so this is the only place it can be asserted. The failure it

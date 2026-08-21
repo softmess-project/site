@@ -626,6 +626,37 @@ Against that, three things measured against Biome 2.5.9 on this repo's own files
 Revisit if Biome ships real Astro template support, or if this repo grows enough
 TypeScript that 1.9s becomes minutes. Neither is close.
 
+### 4.5 Two toolchain upgrades the ecosystem is not ready for
+
+Both were attempted, both failed against the actual tools, and both are pinned
+one version short of latest on purpose. `pnpm -r outdated` will keep offering
+them.
+
+**TypeScript 7 — no.** `typescript-eslint@8.67.0` refuses to load at all:
+`typescript-eslint does not support TS 7.0`, pointing at typescript-eslint#10940
+for `>=7.1` support. Independently, `astro check` crashes in
+`@astrojs/language-server@2.16.14` constructing `AstroCheck`. TypeScript is on
+**6.0.3** instead — the newest release typescript-eslint's peer range
+(`>=4.8.4 <6.1.0`) admits, and it passes the whole gate including `astro check`
+and the preview build. Revisit when typescript-eslint ships TS 7 support.
+
+**eslint 10 for `studio/` — no.** `@sanity/eslint-config-studio@6.0.0` (latest)
+declares `eslint: ^9.0.0` and pulls `eslint-plugin-react@7.37.5`, also latest,
+whose peer range ends at `^9.7`. On eslint 10 the run dies with
+`Error while loading rule 'react/no-direct-mutation-state': contextOrFilename.getFilename is not a function`
+— eslint 10 removed `context.getFilename()`. No override fixes it, because
+7.37.5 is the newest eslint-plugin-react that exists. So studio stays on eslint
+9.39.5: deprecated upstream, pinned deliberately, until Sanity's config ships an
+eslint 10 build.
+
+`site/` is on eslint 10 because `eslint-plugin-astro@3.1.0` requires
+`eslint: >=10.0.0`. Its peer set cannot be satisfied in either direction: it also
+requires `eslint-plugin-jsx-a11y >=6.10.2`, and 6.10.2 — the latest — caps at
+eslint 9. So `pnpm peers check` reports one unmet eslint peer whichever major
+site uses; on 10 the unmet one is transitive instead of the direct dependency.
+
+---
+
 ---
 
 ## 5. The image proxy — built, tested, shipped dormant

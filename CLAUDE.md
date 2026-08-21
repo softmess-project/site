@@ -193,7 +193,10 @@ rather than arbitrary values, and the semantic color names (`bg-bg`, `text-ink`,
   without its parser they are unparseable, not merely unchecked. The
   `eslint-sarif` job in `verify.yml` re-runs both and uploads the findings to
   code scanning through `scripts/eslint-sarif.mjs`; that is reporting only,
-  since the gate has already failed by then.
+  since the gate has already failed by then. The two packages sit on different
+  eslint majors on purpose — site on 10, studio pinned to 9 — and TypeScript is
+  held at 6.0.3 rather than 7. Both are upstream blocks, recorded with the
+  observed failures in `docs/BACKLOG.md` §4.5.
 - Prettier: no semicolons, single quotes, no bracket spacing, 100 cols. One
   config, `.prettierrc.json` at the root, and `pnpm verify` fails on any drift —
   `pnpm format` fixes it. `.astro` needs `prettier-plugin-astro`, which the

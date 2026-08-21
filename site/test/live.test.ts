@@ -17,7 +17,8 @@ const PREVIEW_URL = (
 // The public site sits behind Cloudflare Access, so an unauthenticated request
 // is answered with a redirect to a login page rather than the site. Its checks
 // only run when SITE_URL is given explicitly — from somewhere that can actually
-// reach it, or against a `wrangler dev` origin.
+// reach it, or against a `wrangler dev` origin, which is the two-command recipe
+// in the docs/BACKLOG.md appendix and is how these nine are normally run.
 const SITE_URL = process.env.SITE_URL?.replace(/\/$/, '')
 
 // Whether the deployed build was made with PROXY_IMAGES=1, exactly as
@@ -59,6 +60,52 @@ const DATASET = process.env.SANITY_DATASET
 // stale document behind and the next run replaces it instead of accumulating.
 // Sanity's own secrets are `drafts.<uuid>`, so this cannot collide with one.
 const PROBE_ID = 'sanity-preview-url-secret.live-test'
+
+// A gate that skips in silence reports green having run a third of itself: with
+// no env file of its own, this file ran 7 of its 20 assertions on the
+// maintainer's own machine and said nothing about the rest. vitest.config.ts now
+// loads the repo-root .env/.env.local when LIVE=1; whatever stays dark after
+// that is named below, with the variable that lights it, because the summary
+// line only ever says how many skipped and never which.
+//
+// It is a test rather than a module-level warning because a reporter drops
+// console output written during collection and prints only what a running task
+// logs. `verify:live` passes --reporter=verbose for the same reason: the default
+// reporter counts skips without naming them.
+describe.skipIf(!LIVE)('the live gate', () => {
+  it('names the assertions it cannot make', () => {
+    const dark: [boolean, string, string][] = [
+      [!API_TOKEN, 'SANITY_API_TOKEN', 'the draft-mode handshake and its cookie attributes'],
+      [
+        !DRAFT_SECRET,
+        'PREVIEW_DRAFT_SECRET',
+        'that the draft gate opens at all, rather than being broken shut',
+      ],
+      [
+        !SITE_URL,
+        'SITE_URL',
+        'every assertion about the public site — its headers, SBOM, icons and WebFinger',
+      ],
+    ]
+    const unset = dark.filter(([missing]) => missing)
+
+    // No expectation: an incomplete run is the normal state — SITE_URL needs a
+    // local origin until softmess.de comes out from behind Access, and a Worker
+    // secret cannot be read back out of Cloudflare — so asserting completeness
+    // would leave this permanently red and therefore ignored. The report is the
+    // value.
+    if (unset.length) {
+      console.warn(
+        [
+          '',
+          `live gate incomplete: ${unset.length} of 3 credential groups unset`,
+          ...unset.map(([, key, what]) => `  ${key} — unchecked: ${what}`),
+          '',
+        ].join('\n'),
+      )
+    }
+  })
+})
 
 function get(path: string, cookie?: string) {
   return fetch(`${PREVIEW_URL}${path}`, {

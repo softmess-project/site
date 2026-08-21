@@ -562,9 +562,13 @@ describe('software bill of materials', () => {
       expect(c.version, c.name).toMatch(/^\d+\.\d+\.\d+/)
       expect(c.purl, c.name).toBe(`pkg:npm/${c.name.replace('@', '%40')}@${c.version}`)
     }
-    // Pinned once as a literal, because the assertion above encodes the purl
-    // the same way the generator does and would agree with it either way.
-    expect(all.map((c: {purl: string}) => c.purl)).toContain('pkg:npm/%40fontsource/outfit@5.3.0')
+    // Spelled out once as a literal, because the assertion above encodes the
+    // purl the same way the generator does and would agree with it either way.
+    // The version stays out of it: package.json allows ^5.3.0, so pinning the
+    // resolved one would turn any `pnpm update` into a failure here that says
+    // nothing about what changed.
+    const purls = all.map((c: {purl: string}) => c.purl)
+    expect(purls.some((purl) => purl.startsWith('pkg:npm/%40fontsource/outfit@'))).toBe(true)
   })
 
   it('claims exactly the font packages the layout imports', () => {
@@ -590,5 +594,58 @@ describe('software bill of materials', () => {
     const headers = readFileSync(join(DIST, '_headers'), 'utf8')
     expect(headers).toContain('/.well-known/sbom')
     expect(headers).toContain('Content-Type: application/vnd.cyclonedx+json')
+  })
+})
+
+describe('webfinger', () => {
+  // The build emits every JRD the site is willing to answer for; worker.ts
+  // picks one by `?resource=` and never learns what the subjects are. These
+  // assertions therefore cover the half that knows the identities, and stay
+  // clear of the values an editor owns — the address and the social URL are
+  // Sanity fields, so only their shape is pinned, never their content.
+  const docs = (): {subject: string; aliases?: string[]; links: {rel: string; href: string}[]}[] =>
+    JSON.parse(readFileSync(join(DIST, '.well-known', 'webfinger'), 'utf8'))
+
+  const bySubject = (local: string) =>
+    docs().find((d) => d.subject.startsWith(`acct:${local}@`))!
+
+  it('publishes exactly the subjects the site claims, all at its own host', () => {
+    const subjects = docs().map((d) => d.subject)
+    expect(subjects).toEqual(['acct:softmess@softmess.de', 'acct:moritz@softmess.de'])
+  })
+
+  it('gives every link an absolute href', () => {
+    // A relative href in a JRD is unusable: the consumer is a third party that
+    // reached the document by acct: URI and has no base to resolve against.
+    for (const doc of docs()) {
+      expect(doc.links.length, doc.subject).toBeGreaterThan(0)
+      for (const link of doc.links) expect(link.href, doc.subject).toMatch(/^[a-z]+:/)
+    }
+  })
+
+  it('lets no two documents claim the same resource', () => {
+    // An alias asserts "same resource". If two subjects claimed one, a query
+    // for it would have two right answers and the Worker would return whichever
+    // was built first — an identity decided by array order.
+    const claims = docs().flatMap((d) => [d.subject, ...(d.aliases ?? [])])
+    expect(new Set(claims).size).toBe(claims.length)
+  })
+
+  it('keeps the project social identity off the personal subject', () => {
+    // `rel="me"` asserts sameness. The Instagram account belongs to the
+    // project, so carrying it on acct:moritz would claim a person is an org.
+    // Read off the org document rather than pinned, because the URL is content.
+    const social = bySubject('softmess')
+      .links.filter((l) => l.rel === 'me' && !l.href.startsWith('mailto:'))
+      .map((l) => l.href)
+    expect(social.length).toBeGreaterThan(0)
+    const personal = bySubject('moritz').links.map((l) => l.href)
+    for (const href of social) expect(personal).not.toContain(href)
+  })
+
+  it('offers a mailto contact on every subject', () => {
+    for (const doc of docs()) {
+      expect(doc.links.some((l) => l.href.startsWith('mailto:')), doc.subject).toBe(true)
+    }
   })
 })

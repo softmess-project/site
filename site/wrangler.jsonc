@@ -18,11 +18,16 @@
     // the asset router actually serve those URLs instead of 307-redirecting
     // to add one back.
     "html_handling": "drop-trailing-slash",
-    // Everything except /cdn/* is served from assets without invoking the
-    // Worker at all, which is what keeps the public site a static deployment.
-    // Naming the prefix explicitly rather than relying on "no asset matched"
-    // also means not_found_handling can never swallow a proxy request.
-    "run_worker_first": ["/cdn/*"]
+    // Everything except these two paths is served from assets without invoking
+    // the Worker at all, which is what keeps the public site a static
+    // deployment. Naming them explicitly rather than relying on "no asset
+    // matched" also means not_found_handling can never swallow a proxy request.
+    //
+    // /.well-known/webfinger is here because RFC 7033 answers depend on the
+    // query string and the asset router discards it. The Worker reads the
+    // documents built to this same path through the ASSETS binding, which goes
+    // straight to the asset store rather than back through this rule.
+    "run_worker_first": ["/cdn/*", "/.well-known/webfinger"]
   },
   "routes": [
     {"pattern": "softmess.de", "custom_domain": true},

@@ -66,10 +66,20 @@ Cloudflare's asset router has nothing to infer from.
 
 ### Three Workers
 
-- `softmess` — static assets on softmess.de. `src/worker.ts` runs only for
-  `/cdn/*` (`run_worker_first`), proxying Sanity's image CDN same-origin so
-  visitor IPs never reach Sanity. Currently **dormant**: gated on `PROXY_IMAGES`,
-  off by default — see the zone constraint below.
+- `softmess` — static assets on softmess.de. `src/worker.ts` runs for exactly
+  two paths (`run_worker_first`), and every other URL is served from assets
+  without invoking it:
+  - `/cdn/*` proxies Sanity's image CDN same-origin so visitor IPs never reach
+    Sanity. Currently **dormant**: gated on `PROXY_IMAGES`, off by default — see
+    the zone constraint below.
+  - `/.well-known/webfinger` answers RFC 7033 queries. It needs code because the
+    answer depends on `?resource=` and the asset router discards the query
+    string, so a static file would reply `200` to a resource that is not ours
+    where the RFC demands `404`. The Worker holds **no identifier**: the JRDs are
+    built from Sanity by `src/pages/.well-known/webfinger.ts` and read back
+    through the `ASSETS` binding, which reaches the asset store directly rather
+    than re-entering this rule. Adding a subject means editing that endpoint and
+    nothing else.
 - `softmess-preview` — SSR preview behind the Studio's Presentation mode.
 - `softmess-studio` — the built Studio on studio.softmess.de.
 

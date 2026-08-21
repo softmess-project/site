@@ -235,4 +235,33 @@ describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
     expect(response.headers.get('content-type')).toMatch(/^application\/vnd\.cyclonedx\+json/)
     expect((await response.json()).bomFormat).toBe('CycloneDX')
   })
+
+  // Whether `run_worker_first` actually routes /.well-known/webfinger to code
+  // is a property of the deployed configuration and of nothing in the build
+  // directory, so this is the only place it can be asserted. The failure it
+  // guards against is quiet: with the rule missing, the asset router serves the
+  // built document to every query and the endpoint looks healthy.
+  const webfinger = (query: string) => fetch(`${SITE_URL}/.well-known/webfinger${query}`)
+
+  it('answers a WebFinger query for a subject it publishes', async () => {
+    // The canonical host, which is baked into the built documents and is not
+    // necessarily the origin serving them — SITE_URL is allowed to be a
+    // `wrangler dev` address, and deriving the subject from it fails there
+    // against a perfectly correct deployment.
+    const host = 'softmess.de'
+    const response = await webfinger(`?resource=acct:softmess@${host}`)
+    expect(response.status).toBe(200)
+    // RFC 7033 §10.2 and §5. The CORS header is what browser-side clients need
+    // to read the response at all, and it can only come from the Worker.
+    expect(response.headers.get('content-type')).toMatch(/^application\/jrd\+json/)
+    expect(response.headers.get('access-control-allow-origin')).toBe('*')
+    expect((await response.json()).subject).toBe(`acct:softmess@${host}`)
+  })
+
+  it('refuses a resource it does not publish, which a static file could not', async () => {
+    // The assertion that proves code is running. A file served for this path
+    // would answer 200 here, claiming an identity that was never asked about.
+    expect((await webfinger('?resource=acct:nobody@example.com')).status).toBe(404)
+    expect((await webfinger('')).status).toBe(400)
+  })
 })

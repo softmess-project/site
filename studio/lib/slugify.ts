@@ -15,13 +15,15 @@ export function slugifyGerman(input: string): string {
   for (const [pattern, replacement] of TRANSLITERATIONS) {
     value = value.replace(pattern, replacement)
   }
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    // Combining diacritical marks, written as escapes rather than as literal
-    // characters — they are invisible in an editor and trivially mangled.
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 96)
+  return (
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      // Combining diacritical marks, written as escapes rather than as literal
+      // characters — they are invisible in an editor and trivially mangled.
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 96)
+  )
 }

@@ -4,15 +4,29 @@
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "prepare": "simple-git-hooks",
     "dev": "concurrently -n studio,site -c magenta,blue \"pnpm --filter studio dev\" \"pnpm --filter site dev\"",
     "typegen": "pnpm --filter studio typegen",
     "build:site": "pnpm --filter site build",
     "build:site:deploy": "pnpm build:site && DIST_DIR=dist pnpm --filter site exec vitest run test/dist.test.ts",
     "build:studio": "pnpm --filter studio build",
-    "verify": "pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter studio typecheck && pnpm --filter studio test && pnpm --filter site check && pnpm --filter site test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "pnpm format:check && pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter studio typecheck && pnpm --filter studio test && pnpm --filter site check && pnpm --filter site test",
     "verify:live": "LIVE=1 pnpm --filter site exec vitest run test/live.test.ts"
   },
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.5",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-astro": "^0.14.1",
+    "simple-git-hooks": "^2.13.1"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged",
+    "pre-push": "sh scripts/pre-push.sh"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
   }
 }

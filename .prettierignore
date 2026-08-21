@@ -1,0 +1,20 @@
+pnpm-lock.yaml
+
+# Build output.
+site/dist
+site/dist-fixtures
+site/.astro
+studio/dist
+
+# Generated, and typegen already runs prettier over it with this same config.
+# Checking it here as well would put two writers on one file, and `pnpm verify`
+# fails on any diff in it — so a disagreement between them would be unfixable
+# rather than merely noisy.
+site/src/sanity.types.ts
+
+# Agent session artifacts and superseded design records: history, not source.
+# Reformatting them would churn documents nobody edits, and
+# 2026-08-20-seo-social-design.md holds a fenced type fragment prettier cannot
+# parse at all.
+.superpowers
+docs/superpowers

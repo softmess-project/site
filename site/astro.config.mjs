@@ -88,8 +88,6 @@ export default defineConfig({
     // outside site/, so Vite serves it raw and each CommonJS dep in its chain
     // (react-compiler-runtime, react-is, …) reaches the browser without named
     // exports. Nested syntax because it is not a direct dependency of site/.
-    optimizeDeps: preview
-      ? {include: ['@sanity/astro > @sanity/visual-editing/react']}
-      : undefined,
+    optimizeDeps: preview ? {include: ['@sanity/astro > @sanity/visual-editing/react']} : undefined,
   },
 })

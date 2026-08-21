@@ -56,7 +56,7 @@ describe('page orphan-page warning', () => {
     expect(result).toBe(true)
   })
 
-  it('warns when both nav arrays are absent (the dataset\'s state before any nav is set up)', async () => {
+  it("warns when both nav arrays are absent (the dataset's state before any nav is set up)", async () => {
     const context = {getClient: () => siteSettingsClient({})}
     expect(await validate({_id: 'page-a'}, context)).toBe(WARNING)
   })

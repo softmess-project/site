@@ -64,7 +64,13 @@
           "_type": "reference"
         }
       },
-      "actions": [{"_key": "shop", "label": "shop the drop", "href": "https://www.instagram.com/softmess.project/"}]
+      "actions": [
+        {
+          "_key": "shop",
+          "label": "shop the drop",
+          "href": "https://www.instagram.com/softmess.project/"
+        }
+      ]
     },
     {
       "_key": "gallery1",

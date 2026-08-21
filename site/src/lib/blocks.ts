@@ -8,7 +8,4 @@ export type PageBuilderBlock = NonNullable<
 >[number]
 
 /** One member of that union, picked by `_type`. */
-export type BlockOfType<T extends PageBuilderBlock['_type']> = Extract<
-  PageBuilderBlock,
-  {_type: T}
->
+export type BlockOfType<T extends PageBuilderBlock['_type']> = Extract<PageBuilderBlock, {_type: T}>

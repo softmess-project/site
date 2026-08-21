@@ -50,7 +50,7 @@ const HEIGHT = Math.round(WIDTH * 1.25) // the mockup's 4:5 charm silhouette
   {
     image?.asset && (
       <figure class:list={['relative m-0 justify-self-center', order]}>
-        <div class="absolute inset-y-[-6%] inset-x-[-8%] rounded-full bg-surface opacity-70"></div>
+        <div class="absolute inset-y-[-6%] inset-x-[-8%] rounded-full bg-surface opacity-70" />
         <img
           class="charm-blob washed animate-drift relative w-[min(380px,74vw)] aspect-[4/5] object-cover shadow-charm"
           src={srcFor(image, WIDTH, HEIGHT)}

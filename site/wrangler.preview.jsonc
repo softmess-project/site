@@ -28,11 +28,11 @@
     // (`wrangler secret put SANITY_API_TOKEN`), and a deploy leaves secrets
     // alone — only plain-text vars are replaced.
     "SANITY_PROJECT_ID": "85i3osnk",
-    "SANITY_DATASET": "production",
+    "SANITY_DATASET": "production"
   },
   "assets": {
     "directory": "./dist/client",
-    "binding": "ASSETS",
+    "binding": "ASSETS"
   },
   // workers.dev, not a custom domain on the zone. A Worker on any softmess.de
   // hostname gets HTTP 525 on every subrequest to api.sanity.io, so the preview
@@ -45,5 +45,5 @@
   // would publish a second, unversioned hostname for every deploy. The draft
   // gate is the cookie, not the hostname, so these are not a hole — but the
   // Studio only ever iframes the canonical host, so they are pure surface.
-  "preview_urls": false,
+  "preview_urls": false
 }

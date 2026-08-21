@@ -32,20 +32,20 @@ subrequests to `api.sanity.io`, `cdn.sanity.io` and `github.com`. An identical
 throwaway Worker on `workers.dev` — same account, same colo (FRA), same code —
 gets 200 for all of them.
 
-| host | `workers.dev` | `preview.softmess.de` |
-| --- | --- | --- |
-| example.com | 200 | 200 |
-| www.sanity.io | 200 | 200 |
-| cloudflare.com | 301 | 301 |
-| api.sanity.io | 200 | **525** |
-| `85i3osnk.api.sanity.io` | 200 | **525** |
-| `85i3osnk.apicdn.sanity.io` | 200 | **525** |
-| cdn.sanity.io | 200 | **525** |
-| github.com | 200 | **525** |
+| host                        | `workers.dev` | `preview.softmess.de` |
+| --------------------------- | ------------- | --------------------- |
+| example.com                 | 200           | 200                   |
+| www.sanity.io               | 200           | 200                   |
+| cloudflare.com              | 301           | 301                   |
+| api.sanity.io               | 200           | **525**               |
+| `85i3osnk.api.sanity.io`    | 200           | **525**               |
+| `85i3osnk.apicdn.sanity.io` | 200           | **525**               |
+| cdn.sanity.io               | 200           | **525**               |
+| github.com                  | 200           | **525**               |
 
 What this rules out — each tested directly, not reasoned about:
 
-- **The code.** A raw `fetch()` with *no token at all* 525s from inside the
+- **The code.** A raw `fetch()` with _no token at all_ 525s from inside the
   preview Worker.
 - **`@sanity/client`.** It succeeds from the workers.dev Worker on `published`,
   `drafts` and `raw` perspectives with the real token.
@@ -58,7 +58,7 @@ What this rules out — each tested directly, not reasoned about:
 - **Retrying.** 12/12 and then 9/9 consecutive failures. A retry-on-5xx wrapper —
   the workaround the old backlog proposed — would not have helped.
 - **Staleness.** The Worker deployed before this pass was pre-page-builder code
-  still querying `legalPage`; that was a *second*, separate bug, now fixed. The
+  still querying `legalPage`; that was a _second_, separate bug, now fixed. The
   525 survives fresh code.
 
 Cloudflare's own docs confirm the mechanism is zone-scoped: the origin
@@ -181,13 +181,13 @@ strictly better than Workers Builds here:
 renamed `GitHub Actions`, now posts to
 `https://api.github.com/repos/softmess-project/site/dispatches`:
 
-| field | value |
-| --- | --- |
-| Method | `POST` |
-| `rule.projection` | `{"event_type": "sanity-publish"}` |
-| Header | `Accept: application/vnd.github+json` |
-| Header | `Authorization: Bearer <fine-grained PAT>` |
-| `dataset` | `production` |
+| field             | value                                      |
+| ----------------- | ------------------------------------------ |
+| Method            | `POST`                                     |
+| `rule.projection` | `{"event_type": "sanity-publish"}`         |
+| Header            | `Accept: application/vnd.github+json`      |
+| Header            | `Authorization: Bearer <fine-grained PAT>` |
+| `dataset`         | `production`                               |
 
 The payload projection lives at **`rule.projection`**, not the top-level
 `projection` field — that one validates as an object with no permitted keys and
@@ -223,7 +223,7 @@ not trigger production deploys.
 **Left over:** the Cloudflare Workers Builds deploy hook
 (`daf1fb82-9012-42a5-8718-f3a974457a0b`) and whatever build config sits behind it
 are now unreferenced and should be deleted in the dashboard. While it is still
-connected, the Workers dashboard also *misattributes* version history: it joins
+connected, the Workers dashboard also _misattributes_ version history: it joins
 versions to GitHub commits and credits `b87b3872` to `dependabot[bot]`, where the
 version's own API record reads `author_email: moritz@mazetti.me`.
 
@@ -258,7 +258,7 @@ one piece at a time, from
 logs, but no edit verb, and deleting loses the `Authorization: Bearer <PAT>`
 header — Sanity never reads header values back.
 
-Note what this does *not* fix: Cloudflare's "by" column. That is
+Note what this does _not_ fix: Cloudflare's "by" column. That is
 `metadata.author_email`, taken from the credential that uploaded the version,
 and an API token carries no user identity, so CI deploys read `by Unknown`
 whatever the message says. Deploying under a user credential instead would make
@@ -293,7 +293,7 @@ the literal constant the handshake sets. So
 every unpublished draft plus the stega payloads. The `validatePreviewUrl`
 handshake protects nothing once anyone has seen the cookie's shape.
 
-The design spec asked for a *signed* cookie. Access was chosen instead: it moves
+The design spec asked for a _signed_ cookie. Access was chosen instead: it moves
 the gate to the perimeter, matches how `softmess.de` is already protected, and
 needs no crypto in the Worker. The code side is done — `draft.ts` records why the
 bare `1` is acceptable behind a perimeter, and `live.test.ts` now asserts the
@@ -330,20 +330,20 @@ Merging that branch does not, by itself, achieve two of its four headline
 goals on the live site. Both need one edit in the Studio; neither is a code
 change, so nothing here will fail a build to remind you.
 
-**Set the home page's language.** *Startseite → Suchmaschinen → Sprache* →
+**Set the home page's language.** _Startseite → Suchmaschinen → Sprache_ →
 **Englisch**. Until this is set, production still renders `lang="de"` on the
 English home page — every visible string on it is English, and the tag
 claims otherwise. The code default is `de`, deliberately: `initialValue` only
 ever applies to newly created documents, so a document that already exists
 reads as unset regardless of what the field's default says. Defaulting the
-*code* to `en` would have silently relabelled the German imprint and privacy
+_code_ to `en` would have silently relabelled the German imprint and privacy
 policy on the next build — the wrong direction to be wrong in. `de` preserves
 exactly what ships today; setting the home page to Englisch is the one
 deliberate edit that makes the tag true again.
 
 ~~**Upload the site icon.**~~ Done, and the field is gone with it: the icon
 set is five static files in `site/public/`, generated in one pass, not content.
-The *Website-Icon* field could only ever produce one square PNG, while the set
+The _Website-Icon_ field could only ever produce one square PNG, while the set
 needs a multi-resolution `.ico`, an opaque apple-touch icon and two
 `purpose: maskable` manifest icons with their own safe-zone padding — five
 different preparation rules, none of them an editor's job. Removing it also
@@ -360,11 +360,19 @@ Two smaller, unrelated notes from the same review:
   deliver `1199×630` for some source aspect ratios. Harmless — scrapers
   measure the actual bytes rather than trusting the tag — but the declared
   value is a hint, not a guarantee.
-- Prettier is a devDependency of `studio/` only and is not wired into
-  `pnpm verify`, so no file under `site/` is format-checked in CI, and
-  `.astro` files couldn't be even if it were — there is no
-  `prettier-plugin-astro` in use. A standing gap in the convention, not
-  something this branch introduced or is fixing.
+- ~~Prettier is a devDependency of `studio/` only and is not wired into
+  `pnpm verify`.~~ Closed. Prettier and `prettier-plugin-astro` are root
+  devDependencies, the duplicated config in `studio/package.json` is gone in
+  favour of the one at the root, and `pnpm format:check` is the first step of
+  `pnpm verify`. The 19 files that had drifted are formatted; 52 more under
+  `.superpowers/` and `docs/superpowers/` are ignored as session artifacts and
+  superseded design records rather than churned.
+  Two things the pass turned up: prettier's default `trailingComma` applies to
+  `.jsonc`, and while wrangler tolerates trailing commas, `dist.test.ts` reads
+  `wrangler.jsonc` with strict `JSON.parse`, so `*.jsonc` is pinned to `"none"`.
+  And `prettier-plugin-astro` rewrites `<div></div>` to `<div />`; Astro's
+  compiler expands it back, verified against the built HTML, so it is cosmetic —
+  but that is worth knowing before reading such a diff as a bug.
 
 ### 1.8 The fediverse account WebFinger is holding a place for
 
@@ -386,7 +394,7 @@ go on the **personal** document, not the org one:
 ```
 
 Two things worth knowing before doing it. The remote server has to be told to
-accept the alias — on Mastodon that is *Preferences → Profile → Aliases*, plus
+accept the alias — on Mastodon that is _Preferences → Profile → Aliases_, plus
 the redirect the account itself advertises; publishing the JRD alone gets you a
 handle that resolves and then fails to follow. And `subscribe` uses `template`
 rather than `href`, which is legal JRD and is the only link in the document
@@ -398,7 +406,7 @@ would read `undefined` off it, and the `Jrd` type in `src/worker.ts`, where
 The Instagram `rel="me"` deliberately stays on the org document only:
 `rel="me"` asserts that two URIs are the same entity, and that account is the
 project's. `dist.test.ts` guards the direction that overclaims by accident — an
-org account leaking onto the *personal* subject — and cannot see a personal
+org account leaking onto the _personal_ subject — and cannot see a personal
 account added to the org document, so that one is on the author.
 
 ---
@@ -444,7 +452,7 @@ there, both learned by breaking them:
   **That is what had actually been deployed** — a 1.77 KiB "SSR" Worker.
 
 Also fixed here: the adapter was generating the preview Worker's config from the
-default-named `wrangler.jsonc`, i.e. the *static* site's, name `softmess`, routed
+default-named `wrangler.jsonc`, i.e. the _static_ site's, name `softmess`, routed
 at `softmess.de`. `astro.config.mjs` now names `wrangler.preview.jsonc` via
 `configPath`. And `session: false`, because nothing here has a session and the
 default made wrangler try to auto-provision a KV namespace.
@@ -504,7 +512,7 @@ the Studio had successfully created preview secrets minutes before.
 
 The cookie was being discarded by the **browser**. The Studio frames the preview
 from `studio.softmess.de` while the Worker runs on `workers.dev`, so the draft
-cookie is a third-party cookie. `SameSite=None` lets a cookie be *sent*
+cookie is a third-party cookie. `SameSite=None` lets a cookie be _sent_
 cross-site; it does not stop the browser blocking it as third-party, which
 Safari does unconditionally and Chrome does in Incognito and wherever the user
 has turned third-party cookies off. Draft mode therefore stayed off,
@@ -514,7 +522,7 @@ come.
 
 The fix is `partitioned: secure` on the cookie (CHIPS), in
 `site/src/preview-routes/draft-mode-enable.ts`. Partitioning keys the cookie to
-the embedding site, which exempts it from that blocking, and it *narrows* the
+the embedding site, which exempts it from that blocking, and it _narrows_ the
 gate rather than widening it: the cookie is no longer sent from any other
 embedder. Caveat worth keeping: CHIPS needs Safari 18.4 or newer. If §1.1 is
 ever fixed and preview moves back onto a `softmess.de` subdomain, the cookie is
@@ -523,7 +531,7 @@ same-site again and none of this matters.
 **Why the live gate did not catch it, and what changed.** `fetch()` has no
 cookie policy, so every assertion in `live.test.ts` passed against a Presentation
 tool that was broken for editors — and nothing exercised the handshake's
-*success* path at all. It now mints a real `sanity.previewUrlSecret`, drives the
+_success_ path at all. It now mints a real `sanity.previewUrlSecret`, drives the
 handshake against the deployed Worker, asserts `307` plus all four cookie
 attributes as a set, and deletes the document afterwards. Verified as a real
 test: it fails on the missing `Partitioned` against the pre-fix deploy. It needs
@@ -544,7 +552,7 @@ tidying, not a fix; removing the dead one is the more useful half.
 ### 4.1 The real-content gate does not check content
 
 `pnpm build:site:deploy` passes with the imprint's `TBD` in place, by design
-(`c63e638`). Every assertion about *what content says* — exact copy, block
+(`c63e638`). Every assertion about _what content says_ — exact copy, block
 counts, nav labels, unfilled placeholders — is fixture-only, because real content
 is edited in the Studio and pinning it turns ordinary editing into a broken build.
 
@@ -576,7 +584,7 @@ Not built, and not because it was overlooked:
 - **`Product` JSON-LD.** Blocked on a commercial question, not a technical one:
   is there a price, is there stock, does a visitor buy on-site or by Instagram
   DM. `Offer` follows from that answer and earns nothing before it.
-- **`BreadcrumbList`.** The one structured-data type here that *would* earn a
+- **`BreadcrumbList`.** The one structured-data type here that _would_ earn a
   Google rich result — and the site is flat, so there is no trail to describe.
   It becomes real the moment a post or catalogue route nests below a section,
   and joins the existing `@graph` the same way.
@@ -591,6 +599,32 @@ Not built, and not because it was overlooked:
 - **Generated social cards.** Compositing text onto an image needs a rasterizer
   at build time and Sanity's image API cannot do it. The per-page `ogImage`
   field covers the case that matters.
+
+### 4.4 Migrating from Prettier + ESLint to Biome
+
+Proposed for build speed, measured, and declined. The numbers do not support the
+premise: Prettier over the whole repo is 1.9s and ESLint on `studio/` is 1.7s,
+against a `pnpm verify` of ~23s. Linting and formatting are 16% of the gate — the
+cost is the fixture Astro build plus two vitest runs, and Biome touches neither.
+Best case it saves ~3s of 23s and nothing at all off `pnpm build:site`.
+
+Against that, three things measured against Biome 2.5.9 on this repo's own files:
+
+- **Markdown is not supported.** `biome check README.md` reports
+  `Checked 0 file`. `CLAUDE.md`, `README.md` and this file would stop being
+  formatted.
+- **`.astro` is parsed as frontmatter only, and the linter is wrong about it.**
+  On `Base.astro` it flags `Header` and `Footer` as `noUnusedImports` and `graph`
+  and `VisualEditing` as `noUnusedVariables` — all four are used in the template
+  it cannot see, and all are marked `FIXABLE`, so `--write` would delete the
+  imports the page renders with. The formatter likewise leaves template markup
+  alone, which is most of the file and the part `prettier-plugin-astro` was added
+  to cover.
+- **`@sanity/eslint-config-studio` has no Biome equivalent.** The Studio's rules
+  would simply be dropped.
+
+Revisit if Biome ships real Astro template support, or if this repo grows enough
+TypeScript that 1.9s becomes minutes. Neither is close.
 
 ---
 

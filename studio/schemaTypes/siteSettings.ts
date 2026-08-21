@@ -54,7 +54,8 @@ export const siteSettings = defineType({
       title: 'Zurück-Link',
       type: 'string',
       group: 'navigation',
-      description: 'Der Link zurück zur Startseite, gezeigt auf rechtlichen Seiten und der 404-Seite',
+      description:
+        'Der Link zurück zur Startseite, gezeigt auf rechtlichen Seiten und der 404-Seite',
       validation: (rule) => rule.required(),
     }),
     defineField({

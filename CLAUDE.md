@@ -29,6 +29,18 @@ Site tests need the fixture build first (`pnpm --filter site test` does both):
 watcher rewrites `site/src/sanity.types.ts` underneath it and the drift check
 fails spuriously.
 
+Two git hooks, installed by the root `prepare` script via `simple-git-hooks`
+(its own postinstall is refused in `pnpm-workspace.yaml` — `prepare` runs the
+same binary, and a dependency that writes to `.git` on install is worth
+refusing):
+
+- **pre-commit** — `lint-staged` runs `prettier --write` over staged files and
+  re-stages them. Sub-second, and it fixes rather than complains.
+- **pre-push** — `scripts/pre-push.sh` runs the whole `pnpm verify` gate (~23s).
+  On commit it would be slow enough to get bypassed by reflex, and a hook people
+  bypass by reflex is worse than none. If it fails because `pnpm dev` is running,
+  the caveat above is why; `git push --no-verify` overrides.
+
 Secrets live in `.env.local` (gitignored); `.env` holds only `SANITY_PROJECT_ID`
 and `SANITY_DATASET`. `astro.config.mjs` loads both from the repo root into
 `process.env` without clobbering anything CI already set.

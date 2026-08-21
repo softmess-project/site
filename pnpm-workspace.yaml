@@ -35,6 +35,11 @@ peerDependencyRules:
 
 allowBuilds:
   esbuild: true
+  # Its postinstall installs the git hooks, which the root `prepare` script
+  # already does by running the same binary — so nothing is lost by
+  # refusing it, and a dependency that writes to .git on install is worth
+  # refusing on principle.
+  simple-git-hooks: false
   workerd: true
 
 minimumReleaseAgeExclude:

@@ -35,3 +35,54 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
+
+  # Reporting, not gating: `pnpm verify` above already fails the run on any lint
+  # error. This exists so findings land as annotations on the diff and as
+  # history in the Security tab instead of only in a log nobody scrolls.
+  #
+  # `security-events: write` stays in this job. It is the one permission that
+  # could matter if something in the dependency tree ran away with the token, so
+  # the job that needs it does nothing else.
+  eslint-sarif:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # eslint exits non-zero when it finds anything, which is the normal case
+      # here — the findings still have to be converted and uploaded. A genuine
+      # failure (unreadable config, no output at all) surfaces at the next step,
+      # which errors rather than uploading an empty run.
+      - run: pnpm --filter site exec eslint . -f json -o "$GITHUB_WORKSPACE/eslint-site.json"
+        continue-on-error: true
+      - run: pnpm --filter studio exec eslint . -f json -o "$GITHUB_WORKSPACE/eslint-studio.json"
+        continue-on-error: true
+      - run: node scripts/eslint-sarif.mjs eslint-site.json eslint-studio.json > eslint.sarif
+      - uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          sarif_file: eslint.sarif
+          # Distinct from CodeQL's own categories, or one upload would be taken
+          # for a stale version of the other and close its alerts.
+          category: eslint
+          wait-for-processing: true
+
+  # New coverage rather than a second opinion: nothing else here fails a PR that
+  # introduces a dependency with a known advisory. Dependabot only reports on
+  # what is already merged.
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate

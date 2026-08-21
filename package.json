@@ -12,7 +12,7 @@
     "build:studio": "pnpm --filter studio build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "verify": "pnpm format:check && pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter studio typecheck && pnpm --filter studio test && pnpm --filter site check && pnpm --filter site test",
+    "verify": "pnpm format:check && pnpm typegen && git diff --exit-code site/src/sanity.types.ts && pnpm --filter studio lint && pnpm --filter studio typecheck && pnpm --filter studio test && pnpm --filter site lint && pnpm --filter site check && pnpm --filter site test",
     "verify:live": "LIVE=1 pnpm --filter site exec vitest run test/live.test.ts"
   },
   "devDependencies": {

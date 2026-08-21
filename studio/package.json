@@ -21,10 +21,10 @@
   "dependencies": {
     "@sanity/icons": "^5.2.1",
     "@sanity/locale-de-de": "^1.1.36",
-    "@sanity/vision": "^6.9.2",
+    "@sanity/vision": "^6.10.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "sanity": "^6.9.2",
+    "sanity": "^6.10.1",
     "styled-components": "^6.5.3"
   },
   "devDependencies": {
@@ -34,7 +34,7 @@
     "groq-js": "^2.0.0",
     "prettier": "^3.9.6",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10",
-    "wrangler": "^4.123.0"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.124.0"
   }
 }

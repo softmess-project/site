@@ -6,6 +6,8 @@ import {deDELocale} from '@sanity/locale-de-de'
 import {schemaTypes} from './schemaTypes'
 import {structure} from './structure'
 import {resolve} from './presentation/resolve'
+import {localeOverrides} from './lib/locale'
+import {pageHref, slugOf} from './lib/pageHref'
 import {SINGLETON_TYPES} from './lib/singletons'
 
 // Local dev is the default so a Studio run from a checkout talks to the site
@@ -55,6 +57,24 @@ export function resolvePreviewOrigin(
 
 const previewOrigin = resolvePreviewOrigin(buildEnv, process.env.SANITY_STUDIO_PREVIEW_ORIGIN)
 
+/** Origin of the live site, derived from where the Studio itself is served
+ *  rather than configured: the deployed Studio is `studio.softmess.de`, so
+ *  dropping the `studio.` label yields the site's own origin.
+ *
+ *  There is no Cloudflare runtime to ask. `softmess-studio` is assets-only —
+ *  its wrangler.jsonc has no `main`, so no Worker code runs — and this resolver
+ *  runs in the browser regardless. The only host a Worker could report is the
+ *  Studio's own Host header, which `window.location` already carries.
+ *
+ *  A Studio that is not on a `studio.` subdomain (`pnpm dev` on localhost) has
+ *  no sibling site to derive, so it falls back to production: the published page
+ *  lives on softmess.de no matter where the Studio editing it runs. */
+export function resolveSiteOrigin(hostname: string): string {
+  return hostname.startsWith('studio.')
+    ? `https://${hostname.slice('studio.'.length)}`
+    : 'https://softmess.de'
+}
+
 export default defineConfig({
   name: 'default',
   title: 'Softmess',
@@ -81,6 +101,8 @@ export default defineConfig({
     deDELocale(),
   ],
 
+  i18n: {bundles: localeOverrides},
+
   schema: {
     types: schemaTypes,
     templates: (templates) =>
@@ -88,6 +110,20 @@ export default defineConfig({
   },
 
   document: {
+    /** Adds "Veröffentlichte Seite öffnen" to the document menu, pointing at the
+     *  page on the live site. Returning `prev` (undefined) hides the item, which
+     *  is what siteSettings and an unsaved page without a slug get.
+     *
+     *  Resolved in the browser, debounced, against the value being edited — so a
+     *  draft that has never been published still offers the link, and it will
+     *  404 until a publish rebuilds the static site. Presentation is where an
+     *  unpublished draft is meant to be looked at. */
+    productionUrl: async (prev, {document}) => {
+      const href = pageHref(document._type, slugOf(document.slug))
+
+      return href ? `${resolveSiteOrigin(window.location.hostname)}${href}` : prev
+    },
+
     actions: (previous, {schemaType}) =>
       SINGLETON_TYPES.includes(schemaType as (typeof SINGLETON_TYPES)[number])
         ? previous.filter(({action}) => action !== 'delete' && action !== 'duplicate')

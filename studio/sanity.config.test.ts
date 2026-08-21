@@ -1,5 +1,5 @@
-import {describe, expect, it} from 'vitest'
-import config, {resolvePreviewOrigin} from './sanity.config'
+import {afterEach, describe, expect, it, vi} from 'vitest'
+import config, {resolvePreviewOrigin, resolveSiteOrigin} from './sanity.config'
 
 // Fake action components: only the `action` id sanity's built-ins expose
 // statically is relevant to the filter, so that's all these need.
@@ -47,5 +47,49 @@ describe('document.actions', () => {
       'delete',
       'duplicate',
     ])
+  })
+})
+
+describe('resolveSiteOrigin', () => {
+  it("drops the studio label from the Studio's own hostname", () => {
+    expect(resolveSiteOrigin('studio.softmess.de')).toBe('https://softmess.de')
+  })
+
+  // `pnpm dev` and any preview host: nothing to derive, and the published page
+  // is still on the production domain.
+  it('falls back to production off a studio subdomain', () => {
+    expect(resolveSiteOrigin('localhost')).toBe('https://softmess.de')
+  })
+})
+
+describe('document.productionUrl', () => {
+  const resolveFor = (document: Record<string, unknown>) => {
+    vi.stubGlobal('window', {location: {hostname: 'studio.softmess.de'}})
+
+    return config.document!.productionUrl!(undefined, {document} as never)
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('links a page at its slug', async () => {
+    await expect(resolveFor({_type: 'page', slug: {current: 'impressum'}})).resolves.toBe(
+      'https://softmess.de/impressum',
+    )
+  })
+
+  it('links the home page at the root', async () => {
+    await expect(resolveFor({_type: 'homePage'})).resolves.toBe('https://softmess.de/')
+  })
+
+  // Returning the previous value (undefined) is what hides the menu item, and a
+  // link to /undefined is exactly what must never reach an editor.
+  it('offers nothing for a page without a slug', async () => {
+    await expect(resolveFor({_type: 'page'})).resolves.toBeUndefined()
+  })
+
+  it('offers nothing for documents that have no page of their own', async () => {
+    await expect(resolveFor({_type: 'siteSettings'})).resolves.toBeUndefined()
   })
 })

@@ -585,7 +585,9 @@ describe('software bill of materials', () => {
     for (const c of all) {
       // A range like ^5.3.0 is a fact about package.json, not about the build.
       expect(c.version, c.name).toMatch(/^\d+\.\d+\.\d+/)
-      expect(c.purl, c.name).toBe(`pkg:npm/${c.name.replace('@', '%40')}@${c.version}`)
+      // `replaceAll` mirrors sbom.ts exactly, including the reason it is not
+      // `replace` — see the comment there.
+      expect(c.purl, c.name).toBe(`pkg:npm/${c.name.replaceAll('@', '%40')}@${c.version}`)
     }
     // Spelled out once as a literal, because the assertion above encodes the
     // purl the same way the generator does and would agree with it either way.

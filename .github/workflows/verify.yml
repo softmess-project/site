@@ -9,6 +9,12 @@ concurrency:
   group: verify-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only: this workflow only ever checks out and tests. Without the block a
+# job inherits the repository default, which can be read-write, so a compromised
+# dependency in `pnpm install` would run with a token that can push.
+permissions:
+  contents: read
+
 env:
   SANITY_PROJECT_ID: 85i3osnk
   SANITY_DATASET: production

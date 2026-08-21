@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pnpm install
 pnpm dev                 # studio :3333 + site :4321 (site in PREVIEW mode)
 pnpm verify              # the gate: typegen drift, lint both packages, studio typecheck/tests, astro check, site tests
-pnpm verify:live         # deployed-host assertions (LIVE=1); SITE_URL=… also checks the public site
+pnpm verify:live         # deployed-host assertions (LIVE=1), verbose so skips are named
 pnpm build:site          # static build from live Sanity (needs SANITY_API_TOKEN)
 pnpm build:site:deploy   # that build + the real-content gate (test/dist.test.ts with DIST_DIR=dist)
 pnpm typegen             # regenerate site/src/sanity.types.ts from the Studio schema
@@ -24,6 +24,20 @@ pnpm --filter studio exec vitest run lib/slugify.test.ts
 
 Site tests need the fixture build first (`pnpm --filter site test` does both):
 `PROXY_IMAGES=1 pnpm --filter site build:fixtures` then `PROXY_IMAGES=1 vitest run`.
+
+`verify:live` skips whatever it lacks credentials for and reports what it skipped
+— read the `↓` lines, not just the exit code. `vitest.config.ts` loads the
+repo-root `.env`/`.env.local` **only when `LIVE=1`**, so the token is there for
+the live gate and absent from the offline run, which must stay unable to reach
+Sanity. Its nine public-site assertions need `SITE_URL` pointing at an origin
+that serves the real static build; `softmess.de` is behind Cloudflare Access, so
+serve it locally:
+
+```bash
+pnpm build:site
+cd site && npx wrangler dev --config wrangler.jsonc --port 8787
+SITE_URL=http://localhost:8787 pnpm verify:live   # 18 passed | 3 skipped
+```
 
 **Never run `pnpm verify` while `pnpm dev` is running.** The Studio's typegen
 watcher rewrites `site/src/sanity.types.ts` underneath it and the drift check

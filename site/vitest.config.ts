@@ -1,4 +1,23 @@
 import {defineConfig} from 'vitest/config'
+import {loadEnv} from 'vite'
+
+// vitest reads no env file of its own, so `pnpm verify:live` used to run 7 of
+// its 20 assertions and report green — the whole draft-mode handshake block,
+// including the Partitioned cookie whose absence broke Presentation
+// invisibly, skipped in silence on the one machine that actually holds the
+// token. Load the repo-root .env/.env.local the way astro.config.mjs does, but
+// only for the live run: the offline run must stay unable to reach Sanity, or a
+// fixture test that quietly hits the API passes for the wrong reason.
+const fileEnv = process.env.LIVE === '1' ? loadEnv('development', '..', '') : {}
+
+// Ambient values win, so `SITE_URL=… pnpm verify:live` still overrides the file,
+// and a key that is in neither is left absent rather than set to '' — the tests
+// skip on absence, and an empty string would read as "answered, with nothing".
+const liveEnv = Object.fromEntries(
+  ['SANITY_API_TOKEN', 'PREVIEW_DRAFT_SECRET', 'SITE_URL', 'PREVIEW_URL']
+    .filter((key) => !process.env[key] && fileEnv[key])
+    .map((key) => [key, fileEnv[key]]),
+)
 
 export default defineConfig({
   test: {
@@ -22,6 +41,8 @@ export default defineConfig({
       // build it is inspecting actually emitted.
       PROXY_IMAGES: process.env.PROXY_IMAGES ?? '',
       PREVIEW: '',
+      // Empty unless LIVE=1 — see above.
+      ...liveEnv,
     },
     include: ['test/**/*.test.ts'],
   },

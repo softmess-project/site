@@ -1,9 +1,14 @@
 # Backlog — softmess.de
 
-State after the backlog-clearing pass on `feat/page-builder`.
+State as of 2026-08-21, on `main`.
 
-`pnpm verify` is green: 18 studio tests, 49 site tests, 15 skipped (the live gate).
-`pnpm build:site:deploy` **passes** — the real-content gate no longer blocks.
+`pnpm verify` is green: 37 studio tests, 123 site tests, 21 skipped (the live
+gate, which the offline run cannot make). `pnpm build:site:deploy` **passes** —
+the real-content gate no longer blocks.
+
+`pnpm verify:live` is green too, and now says what it did not check: 18 of its 21
+assertions run against a `wrangler dev` origin (§3.7), 10 against the deployed
+hosts alone.
 
 One thing is open, and it is not a code problem.
 
@@ -12,7 +17,8 @@ domain in the `softmess.de` zone gets HTTP 525 on outbound TLS to `api.sanity.io
 `cdn.sanity.io` and `github.com`, while the same code on `workers.dev` reaches all
 of them. The preview Worker has moved to workers.dev to get around it; the image
 proxy still ships dormant behind a flag (§1.2), because it has to be same-origin
-on `softmess.de`. Filed with Sanity, awaiting a reply.
+on `softmess.de`. Filed with Sanity; no reply from Sanity or Cloudflare as of
+2026-08-21, and nothing has moved.
 
 **§1.3 — resolved.** Publishing site content now deploys the site: the Sanity
 webhook dispatches `deploy.yml`, verified end to end. Workers Builds is dropped,
@@ -113,9 +119,13 @@ was partitioned. See §3.6.
 
 Filed with Sanity — this account has no Cloudflare support channel, and their
 API endpoints not offering `X25519MLKEM768` is the property that correlates
-with the failure. Awaiting a response. The zone fault itself is unchanged, so
-§1.2 stays blocked; if it is ever fixed, moving back to `preview.softmess.de`
-is a one-line change in `site/wrangler.preview.jsonc` plus the Studio origin.
+with the failure.
+
+**As of 2026-08-21 neither party has replied and nothing has moved.** Treat this
+as the standing state rather than something to re-measure each session: the zone
+fault is unchanged, so §1.2 stays blocked, and §1.5 stays undeletable. If it is
+ever fixed, moving back to `preview.softmess.de` is a one-line change in
+`site/wrangler.preview.jsonc` plus the Studio origin.
 
 **Before blaming the 525 for the preview pages' 500, redeploy.** The preview
 Worker was being deployed with no `SANITY_PROJECT_ID`: the adapter-generated
@@ -129,11 +139,10 @@ item shrinks to `/cdn/*`; pages that still 500 confirm the 525 reaches them.
 The `/api/diag` measurements are unaffected either way — that route imports no
 Sanity client, so it ran fine and its numbers stand.
 
-**Fallback if Cloudflare is slow:** move the preview Worker to `workers.dev`,
-where egress demonstrably works. It costs a hostname in
-`SANITY_STUDIO_PREVIEW_ORIGIN` and `allowOrigins`, and the draft cookie already
-does `SameSite=None; Secure` over https. This unblocks preview but **not** the
-image proxy, which has to run on `softmess.de`.
+**The fallback was taken.** Moving the preview Worker to `workers.dev` cost a
+hostname in `SANITY_STUDIO_PREVIEW_ORIGIN` and `allowOrigins`, and is what
+unblocked preview. It did **not** unblock the image proxy, which has to run on
+`softmess.de` — that is why §1.2 is still dormant.
 
 ### 1.2 The image proxy is behind a flag, and the flag is off
 
@@ -284,62 +293,49 @@ After §5 that is no longer true — images come from our own origin. The text l
 in Sanity (`Datenschutz` page), not in this repo, so delete that passage in the
 Studio. Do it when 1.1 is fixed and the proxy actually ships, not before.
 
-### 1.6 Put Cloudflare Access in front of `preview.softmess.de` — **one field, and it closes a live hole**
+### 1.6 Cloudflare Access on the preview host — superseded, nothing to do
 
-Today `preview.softmess.de` is a public custom domain that answers anonymous
-requests, and `isDraftMode` accepts any request carrying `sanity-draft-mode=1` —
-the literal constant the handshake sets. So
-`curl -H 'Cookie: sanity-draft-mode=1' https://preview.softmess.de/` returns
-every unpublished draft plus the stega payloads. The `validatePreviewUrl`
-handshake protects nothing once anyone has seen the cookie's shape.
+Kept because the reasoning is still worth reading, not because there is an
+action left. This item asked you to add `preview.softmess.de` to the existing
+Access application, on the grounds that `isDraftMode` accepted any request
+carrying `sanity-draft-mode=1` — the literal constant the handshake set — so
+anyone who had seen the cookie's shape could read every draft.
 
-The design spec asked for a _signed_ cookie. Access was chosen instead: it moves
-the gate to the perimeter, matches how `softmess.de` is already protected, and
-needs no crypto in the Worker. The code side is done — `draft.ts` records why the
-bare `1` is acceptable behind a perimeter, and `live.test.ts` now asserts the
-gate is up, so removing Access fails the live gate instead of silently
-re-opening the hole.
+**Both halves of that have changed.** The preview Worker no longer runs on the
+zone at all (§1.1): it is `softmess-preview.9dev.workers.dev`, and an Access
+application cannot bind to workers.dev, so the perimeter was never available to
+put there. The cookie carries `PREVIEW_DRAFT_SECRET` instead
+(`site/src/lib/draft.ts`, compared in constant time, failing closed), which is
+what actually closed the hole. `live.test.ts` asserts it from the outside: a
+forged `sanity-draft-mode=1`, a wrong secret, and a handshake with no secret are
+all refused against the deployed Worker, verified 2026-08-21.
 
-**What is left is one dashboard change.** In **Zero Trust → Access →
-Applications** (team domain `feinschliff-studio.cloudflareaccess.com`), open the
-existing `softmess.de` application and add `preview.softmess.de` as an
-additional domain. That inherits the policy already protecting the public site,
-so there is no second policy to keep in sync and no identity decision to make.
+Two details this item had wrong, in case they are quoted elsewhere: the Access
+team domain is `mazetti.cloudflareaccess.com`, not `feinschliff-studio`, and the
+`PREVIEW_COOKIE='CF_Authorization=…'` recipe it described does not exist in
+`live.test.ts` — there is nothing to authenticate to on workers.dev.
 
-Not done from here because the API token in `.env.local` lacks Access
-permissions: `access/groups` and `access/organizations` both answer
-`Authentication error`, and `access/apps` reports an empty list even though
-`softmess.de` visibly redirects to the Access login. Creating an application
-blind would mean guessing the identity provider and the allowed identities —
-which either locks the editor out or leaves the host open.
+**What is still true, and it is about the other host.** `softmess.de` itself sits
+behind that Access application — an unauthenticated `GET /` 302s to
+`mazetti.cloudflareaccess.com` (checked 2026-08-21). The site is gated, not
+launched. Removing Access is the launch switch, and §1.4's `TBD` addresses are
+what stand in front of it.
 
-**Know this before you turn it on:** the Studio loads the preview host in an
-iframe, and Access answers an unauthenticated request with a redirect to a login
-page that will not render usefully inside that frame. Log in to
-`https://preview.softmess.de/` once in a normal tab; the `CF_Authorization`
-cookie is same-site with `studio.softmess.de` (shared registrable domain), so
-the iframe then carries it.
+### 1.7 Two Studio edits the seo-social-metadata branch needed — both done
 
-To verify: `LIVE=1 pnpm verify:live`. The gate assertion runs unauthenticated;
-the four assertions behind it need `PREVIEW_COOKIE='CF_Authorization=…'` copied
-from a logged-in browser, and skip without it.
+Neither is left. Kept for the reasoning, which explains a default that still
+looks wrong at first reading.
 
-### 1.7 Two Studio edits the seo-social-metadata branch needs from you
-
-Merging that branch does not, by itself, achieve two of its four headline
-goals on the live site. Both need one edit in the Studio; neither is a code
-change, so nothing here will fail a build to remind you.
-
-**Set the home page's language.** _Startseite → Suchmaschinen → Sprache_ →
-**Englisch**. Until this is set, production still renders `lang="de"` on the
-English home page — every visible string on it is English, and the tag
-claims otherwise. The code default is `de`, deliberately: `initialValue` only
+~~**Set the home page's language.**~~ Done: the live `homePage` reads
+`seo.language == "en"` (queried 2026-08-21), so production renders `lang="en"`
+on the English home page. _Startseite → Suchmaschinen → Sprache_ →
+**Englisch** was the edit. The code default is `de`, deliberately: `initialValue` only
 ever applies to newly created documents, so a document that already exists
 reads as unset regardless of what the field's default says. Defaulting the
 _code_ to `en` would have silently relabelled the German imprint and privacy
 policy on the next build — the wrong direction to be wrong in. `de` preserves
-exactly what ships today; setting the home page to Englisch is the one
-deliberate edit that makes the tag true again.
+exactly what ships today; setting the home page to Englisch was the one
+deliberate edit that made the tag true again.
 
 ~~**Upload the site icon.**~~ Done, and the field is gone with it: the icon
 set is five static files in `site/public/`, generated in one pass, not content.
@@ -410,6 +406,28 @@ org account leaking onto the _personal_ subject — and cannot see a personal
 account added to the org document, so that one is on the author.
 
 ---
+
+### 1.9 One value only you can supply to run the live gate whole
+
+`pnpm verify:live` now runs 18 of its 21 assertions (§3.7). The three that stay
+dark, and what each would take:
+
+- **Two need `PREVIEW_DRAFT_SECRET`** — the positive control on the draft gate:
+  that the real secret _opens_ it, rather than the gate being broken shut and
+  passing every negative assertion by accident. Cloudflare does not read a secret
+  back out (`wrangler secret list` returns names only, and the name is there), so
+  either you still have the value — put it in `.env.local` — or rotate it:
+  `cd site && npx wrangler secret put PREVIEW_DRAFT_SECRET --name softmess-preview`,
+  then the same value in `.env.local`. Rotating logs the current Presentation
+  session out of draft mode and nothing else.
+- **One needs `PROXY_IMAGES=1`**, which is §1.2, which is §1.1. Not actionable
+  and correctly skipped — see §4.2 for why demanding it would make the gate cry
+  wolf.
+
+`SITE_URL` is no longer in this list: the nine public-site assertions run against
+a `wrangler dev` origin serving the real static build, which is the recipe in the
+appendix. Pointing `SITE_URL` at `https://softmess.de` needs Access off that host
+(§1.6), i.e. launch.
 
 ## 2. Answered
 
@@ -546,6 +564,46 @@ makes a browser-side call that CORS could reject. Adding the entry would be
 tidying, not a fix; removing the dead one is the more useful half.
 
 ---
+
+### 3.7 The live gate ran a third of itself and reported green — fixed
+
+`pnpm verify:live` said `7 passed | 13 skipped` and exited 0. Nothing in that
+output said which 13, or that the machine running it held the credentials for
+most of them.
+
+Three causes, all fixed:
+
+- **vitest reads no env file of its own.** `astro.config.mjs` loads the repo-root
+  `.env`/`.env.local` into `process.env`; vitest never did, so `SANITY_API_TOKEN`
+  was invisible to the gate and the entire draft-mode handshake block skipped —
+  including the `Partitioned` cookie assertion whose absence broke Presentation
+  in every browser once already (§3.6). `site/vitest.config.ts` now loads the same
+  two files, **only when `LIVE=1`**: the offline run must stay unable to reach
+  Sanity, or a fixture test that quietly hits the API passes for the wrong reason.
+  Ambient values still win, so `SITE_URL=… pnpm verify:live` overrides the file.
+- **The default reporter hides skips.** It prints a count, never a name, and it
+  drops console output written at collection time. `verify:live` now passes
+  `--reporter=verbose`, which names every assertion and marks each skip with `↓`.
+- **Nothing explained the skips that remain.** The first test in the file is now a
+  report: it names each unset credential and what goes unchecked without it.
+  It deliberately asserts nothing — an incomplete run is the normal state, so
+  asserting completeness would leave the gate permanently red and therefore
+  ignored.
+
+**And the nine public-site assertions had never run at all.** `SITE_URL` went
+unset because `softmess.de` is behind Access (§1.6), and the file's own comment
+already allowed a `wrangler dev` origin — nobody had written down that it works.
+It does, verified 2026-08-21: `18 passed | 3 skipped`, and that includes the two
+response-typing assertions no build directory can make — the SBOM's
+`application/vnd.cyclonedx+json` from `public/_headers`, and `.webmanifest` typed
+by inference with no rule at all. Read them for what they are: `wrangler dev`
+runs the real `wrangler.jsonc` through workerd's asset-router emulation, which is
+far more than a directory listing and still not production. It catches a missing
+or malformed rule; it cannot prove Cloudflare's edge applies it. Recipe in the
+appendix.
+
+Numbers, for comparison: 7/20 before; 10/21 against the deployed hosts alone;
+18/21 with a local origin. The three left are §1.9.
 
 ## 4. Deliberate non-goals, recorded so they stop resurfacing
 
@@ -686,11 +744,25 @@ while the zone can't reach `cdn.sanity.io`.
 
 ```bash
 pnpm verify              # offline gate: typegen drift, lint both packages, studio typecheck/tests, astro check, site tests
-pnpm verify:live         # deployed-host assertions; SITE_URL=... to include the public site
+pnpm verify:live         # deployed-host assertions; reads .env.local, names what it skipped
 pnpm build:site          # build from live Sanity
 pnpm build:site:deploy   # the same build, then the real-content gate
 pnpm dev                 # studio + site together, preview mode, site on :4321
 ```
+
+The live gate whole — the nine public-site assertions need an origin serving the
+real static build, and `softmess.de` is behind Access until launch (§1.6), so
+serve it locally. Three terminals' worth, or two and a background job:
+
+```bash
+pnpm build:site                                   # real content, needs SANITY_API_TOKEN
+cd site && npx wrangler dev --config wrangler.jsonc --port 8787
+SITE_URL=http://localhost:8787 pnpm verify:live    # 18 passed | 3 skipped
+```
+
+`--config wrangler.jsonc` for the same reason `deploy` needs it: without it
+wrangler follows a stale `.wrangler/deploy/config.json` from a preview build and
+serves the SSR app instead. Expect `↓` on three assertions — see §1.9.
 
 Deploying by hand, if you need to bypass CI — note the opposite `--config` rules:
 

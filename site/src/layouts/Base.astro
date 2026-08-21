@@ -8,7 +8,7 @@ import '../styles/theme.css'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import type {Seo, SiteSettings} from '../lib/content'
-import {buildSeo, jsonLdScript, type OgType} from '../lib/seo'
+import {buildSeo, jsonLdScript, siteGraph, type OgType} from '../lib/seo'
 
 interface Props {
   title: string
@@ -25,12 +25,9 @@ interface Props {
   /** 'website' for everything that exists today. A post page passes 'article'
    *  and nothing here changes. */
   ogType?: OgType
-  /** An array, not one object, because a post page emits Article *and*
-   *  BreadcrumbList together. */
-  jsonLd?: object[]
 }
 
-const {title, seo, settings, noIndex, ogType, jsonLd} = Astro.props
+const {title, seo, settings, noIndex, ogType} = Astro.props
 
 const meta = buildSeo({
   title,
@@ -43,6 +40,8 @@ const meta = buildSeo({
   noIndex,
   ogType,
 })
+
+const graph = siteGraph(meta, settings, Astro.site!)
 
 const {VisualEditing} = import.meta.env.PREVIEW
   ? await import('@sanity/astro/visual-editing')
@@ -80,11 +79,7 @@ const {VisualEditing} = import.meta.env.PREVIEW
 
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    {
-      jsonLd?.map((entry) => (
-        <script type="application/ld+json" set:html={jsonLdScript(entry)} />
-      ))
-    }
+    {graph && <script type="application/ld+json" set:html={jsonLdScript(graph)} />}
   </head>
   <body
     class="relative flex min-h-dvh flex-col overflow-x-hidden bg-bg font-sans text-ink"

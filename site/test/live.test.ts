@@ -224,4 +224,15 @@ describe.skipIf(!LIVE || !SITE_URL)('the deployed public site', () => {
     const response = await fetch(`${SITE_URL}/cdn/images/someoneelse/production/x-1x1.jpg`)
     expect(response.status).toBe(404)
   })
+
+  it('serves the SBOM as CycloneDX, which only the deployed headers can prove', async () => {
+    // public/_headers is the only thing typing this response: the path has no
+    // file extension, so the asset router has nothing to infer from, and
+    // whether Workers Assets applies the rule at all cannot be checked from a
+    // build directory. RFC 9472 leaves the format entirely to Content-Type.
+    const response = await fetch(`${SITE_URL}/.well-known/sbom`)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toMatch(/^application\/vnd\.cyclonedx\+json/)
+    expect((await response.json()).bomFormat).toBe('CycloneDX')
+  })
 })

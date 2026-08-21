@@ -55,6 +55,15 @@ The public site ships **no client JavaScript and no third-party subresource** �
 `test/dist.test.ts` enforces both. Fonts are self-hosted via `@fontsource/*`
 because the privacy policy promises it.
 
+Because so little actually reaches a visitor, the CycloneDX SBOM at
+`src/pages/.well-known/sbom.ts` (the URI RFC 9472 registers) lists those font
+packages by hand as `SHIPPED`, with the build toolchain in `metadata.tools`.
+**Adding anything that ships bytes to the browser means adding it to `SHIPPED`** —
+`dist.test.ts` compares that list against `Base.astro`'s own imports in both
+directions, and validates the output against CycloneDX's published schema.
+`public/_headers` is what types the response: the path has no extension, so
+Cloudflare's asset router has nothing to infer from.
+
 ### Three Workers
 
 - `softmess` — static assets on softmess.de. `src/worker.ts` runs only for

@@ -30,6 +30,11 @@ export interface SeoMeta {
   ogLocale: string
   ogType: OgType
   siteName: string
+  /** The decision behind `robots`, kept as the boolean it already is. `robots`
+   *  is a directive list free to grow (max-image-preview:large today, and the
+   *  branch below records that nofollow was weighed); a consumer that reads
+   *  the string instead silently stops working the day it does. */
+  noIndex: boolean
   robots: string
   image: {url: string; alt: string | null; width: number; height: number; type: string} | null
 }
@@ -77,6 +82,7 @@ export function buildSeo(input: SeoInput): SeoMeta {
     ogLocale: LOCALES[lang],
     ogType,
     siteName: settings.brand ?? '',
+    noIndex,
     robots,
     // socialSrcFor is absolute by construction and never proxied, so unlike
     // the on-page helpers this needs no resolving against `site`.
@@ -86,20 +92,33 @@ export function buildSeo(input: SeoInput): SeoMeta {
   }
 }
 
+/** Every node's `@id` is a fragment of the site's own URL, so the identifiers
+ *  a consumer joins on are spelled in exactly one place. Three of the five
+ *  uses are references rather than definitions — a typo in any of them is a
+ *  dangling edge, which is invisible in the rendered page. */
+const nodeId = (site: URL, name: string) => `${site.href}#${name}`
+
+/** Read once and shared by the Organization and WebSite nodes: they must agree
+ *  on what the brand is called, whatever fallback this rule grows. */
+const brandName = (settings: SiteSettings) => clean(settings.brand ?? undefined) ?? ''
+
 /** The brand as one machine-readable record: what it is called, where it
- *  lives, how to reach it, and which social profile is the same entity. Emitted
- *  on the home page only — that is where a knowledge-panel signal belongs.
+ *  lives, how to reach it, and which social profile is the same entity.
+ *
+ *  A node inside the graph below rather than a document of its own, so it
+ *  carries an `@id` and no `@context`: `WebSite.publisher` and the home page's
+ *  `WebPage.about` both point here by reference instead of repeating it.
  *
  *  Every value is stegaClean'd. A source-map payload is invisible in a meta
  *  tag and harmless there, but inside structured data it is a string a
  *  validator reads. Nothing here is Portable Text, so cleaning is safe. */
-export function organizationJsonLd(settings: SiteSettings, site: URL): object {
+export function organizationNode(settings: SiteSettings, site: URL): Record<string, unknown> {
   const email = clean(settings.email ?? undefined)
   const instagram = clean(settings.instagram ?? undefined)
   return {
-    '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: clean(settings.brand ?? undefined) ?? '',
+    '@id': nodeId(site, 'organization'),
+    name: brandName(settings),
     url: site.href,
     ...(email ? {email} : {}),
     ...(instagram ? {sameAs: [instagram]} : {}),
@@ -111,10 +130,71 @@ export function organizationJsonLd(settings: SiteSettings, site: URL): object {
   }
 }
 
-/** Serialize one JSON-LD entry for `set:html`. `<` is escaped because a
+/** The page's structured data as one connected graph: the brand, the site it
+ *  publishes, and this page within it. Three `@id`-linked nodes in a single
+ *  block rather than three sibling scripts — a consumer joins them without
+ *  having to merge documents, and the block stays self-contained per page.
+ *
+ *  Neither `WebSite` nor `WebPage` earns a Google rich result; this is entity
+ *  clarity, not a SERP feature. A type that *does* earn one — `Article`,
+ *  `BreadcrumbList` — is a fourth node appended here, by the commit that adds
+ *  the route that needs it.
+ *
+ *  Built from `SeoMeta`, not from raw content, so the graph and the meta tags
+ *  can never disagree about the title, the language or the canonical URL.
+ *  Returns null for a page excluded from search: structured data nobody will
+ *  read, on the 404, either editor switch, and the preview Worker alike. */
+export function siteGraph(
+  meta: SeoMeta,
+  settings: SiteSettings,
+  site: URL,
+): {'@context': string; '@graph': Record<string, unknown>[]} | null {
+  if (meta.noIndex) return null
+
+  // buildSeo leaves these alone on purpose — a stega payload is invisible in a
+  // meta tag. Here it would be part of the string a validator reads.
+  const name = clean(meta.title) ?? ''
+  const description = clean(meta.description ?? undefined)
+
+  // Derived from the canonical URL, not from a pathname special case: the one
+  // statement that tells a consumer which URL is the entity's own home.
+  const isHome = meta.canonical === site.href
+
+  const organization = nodeId(site, 'organization')
+  const website = nodeId(site, 'website')
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      organizationNode(settings, site),
+      {
+        '@type': 'WebSite',
+        '@id': website,
+        url: site.href,
+        name: brandName(settings),
+        publisher: {'@id': organization},
+        // Deliberately no inLanguage. The site is mixed-language by design —
+        // a German imprint under an English home page — so a single value
+        // here would be false for half the routes. Only the page knows.
+      },
+      {
+        '@type': 'WebPage',
+        '@id': `${meta.canonical}#webpage`,
+        url: meta.canonical,
+        name,
+        ...(description ? {description} : {}),
+        isPartOf: {'@id': website},
+        ...(isHome ? {about: {'@id': organization}} : {}),
+        inLanguage: meta.lang,
+      },
+    ],
+  }
+}
+
+/** Serialize the graph for `set:html`. `<` is escaped because a
  *  content string containing `</script>` would otherwise close the element and
  *  turn editor text into markup. `<` is a JSON escape, so the result still
  *  parses as the same value. */
-export function jsonLdScript(entry: object): string {
-  return JSON.stringify(entry).replace(/</g, '\\u003c')
+export function jsonLdScript(graph: object): string {
+  return JSON.stringify(graph).replace(/</g, '\\u003c')
 }

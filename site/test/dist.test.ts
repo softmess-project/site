@@ -1,6 +1,7 @@
 import {readFileSync, existsSync} from 'node:fs'
 import {join} from 'node:path'
 import {parseHTML} from 'linkedom'
+import {Spec, Validation} from '@cyclonedx/cyclonedx-library'
 import {beforeAll, describe, expect, it} from 'vitest'
 
 // Defaults to the fixture build for the offline/no-secrets path. CI re-runs
@@ -30,8 +31,18 @@ const REAL_CONTENT = process.env.DIST_DIR === 'dist'
 // the one that most needs a test.
 const PROXIED = process.env.PROXY_IMAGES === '1'
 
+const PARSED = new Map<string, ReturnType<typeof parseHTML>['document']>()
+
+// Memoized: several tests read a tag off every page to decide which pages they
+// apply to, so the same file was being read and parsed a dozen times over. No
+// test mutates the document, so one parse per page is safe to share.
 function doc(page: string) {
-  return parseHTML(readFileSync(join(DIST, page), 'utf8')).document
+  let parsed = PARSED.get(page)
+  if (!parsed) {
+    parsed = parseHTML(readFileSync(join(DIST, page), 'utf8')).document
+    PARSED.set(page, parsed)
+  }
+  return parsed
 }
 
 // Catches both the original `[bracketed]` placeholder convention and the
@@ -311,19 +322,82 @@ describe('promises the site makes in its own privacy policy', () => {
     }
   })
 
-  it('emits parseable Organization JSON-LD on the home page only', () => {
-    const blocks = [...doc('index.html').querySelectorAll('script[type="application/ld+json"]')]
-    expect(blocks).toHaveLength(1)
+  // Every indexable page carries the same three-node graph, and no other page
+  // carries anything. Which pages those are is read off each page's own robots
+  // tag rather than listed here: the datenschutz *fixture* sets noIndex to
+  // exercise that switch, while the real document does not, and this suite
+  // runs against both builds.
+  function indexed(page: string) {
+    const robots = doc(page).querySelector('meta[name="robots"]')?.getAttribute('content') ?? ''
+    return !robots.includes('noindex')
+  }
+
+  function graphOf(page: string) {
+    const blocks = [...doc(page).querySelectorAll('script[type="application/ld+json"]')]
+    // One block, not three siblings: the @graph is what makes the nodes join.
+    expect(blocks, page).toHaveLength(1)
     // Parsing, not just presence: a malformed builder would otherwise ship
     // invisible garbage that only Google's validator ever notices.
     const json = JSON.parse(blocks[0].textContent!)
-    expect(json['@context']).toBe('https://schema.org')
-    expect(json['@type']).toBe('Organization')
-    expect(json.name.length).toBeGreaterThan(0)
-    expect(json.url).toMatch(/^https:\/\//)
+    expect(json['@context'], page).toBe('https://schema.org')
+    return json['@graph'] as Record<string, any>[]
+  }
 
-    // A knowledge-panel signal belongs on the home page and nowhere else.
-    for (const page of ['impressum/index.html', 'datenschutz/index.html', '404.html']) {
+  it('emits a parseable Organization/WebSite/WebPage graph on every indexed page', () => {
+    const seen = PAGES.filter(indexed)
+    // The home page is indexed in both builds; without this the suite would
+    // pass vacuously if the graph ever stopped being emitted at all.
+    expect(seen).toContain('index.html')
+
+    for (const page of seen) {
+      const nodes = graphOf(page)
+      expect(
+        nodes.map((n) => n['@type']),
+        page,
+      ).toEqual(['Organization', 'WebSite', 'WebPage'])
+
+      const org = nodes[0]
+      expect(org.name.length, page).toBeGreaterThan(0)
+      expect(org.url, page).toMatch(/^https:\/\//)
+    }
+  })
+
+  it('resolves every @id reference within the page that makes it', () => {
+    // A dangling {"@id": …} is the failure mode of a cross-page graph, and it
+    // is invisible in the rendered output. Each page must be self-contained.
+    for (const page of PAGES.filter(indexed)) {
+      const nodes = graphOf(page)
+      const defined = new Set(nodes.map((n) => n['@id']))
+      const refs = nodes.flatMap((node) =>
+        Object.entries(node)
+          .filter(([key]) => key !== '@id')
+          .map(([key, value]) => ({label: `${node['@type']}.${key}`, id: (value as any)?.['@id']}))
+          .filter(({id}) => typeof id === 'string'),
+      )
+      // publisher and isPartOf at minimum, so an empty graph cannot pass here.
+      expect(refs.length, page).toBeGreaterThanOrEqual(2)
+      expect(
+        refs.filter(({id}) => !defined.has(id)).map(({label, id}) => `${label} → ${id}`),
+        page,
+      ).toEqual([])
+    }
+  })
+
+  it('names the entity home on the home page only', () => {
+    // `about` is the one statement that says which URL the Organization owns.
+    const webPage = (page: string) => graphOf(page).find((n) => n['@type'] === 'WebPage')!
+    expect(webPage('index.html').about).toBeDefined()
+    for (const page of PAGES.filter((p) => p !== 'index.html' && indexed(p))) {
+      expect(webPage(page).about, page).toBeUndefined()
+    }
+  })
+
+  it('emits no structured data on a page excluded from search', () => {
+    // Markup nobody will ever read. The 404 is noindex by route; the fixture
+    // datenschutz page is noindex by the editor switch.
+    const excluded = PAGES.filter((page) => !indexed(page))
+    expect(excluded).toContain('404.html')
+    for (const page of excluded) {
       expect(doc(page).querySelectorAll('script[type="application/ld+json"]'), page).toHaveLength(0)
     }
   })
@@ -452,5 +526,69 @@ describe('crawler directives', () => {
         'max-image-preview:large',
       )
     }
+  })
+})
+
+describe('software bill of materials', () => {
+  // /.well-known/sbom is the URI RFC 9472 registers. That RFC defines discovery
+  // only and says nothing about the format, so conformance here is CycloneDX's
+  // — asserted against CycloneDX's own published schema rather than against
+  // this suite's idea of it.
+  const bom = () => readFileSync(join(DIST, '.well-known', 'sbom'), 'utf8')
+
+  it('validates against the official CycloneDX 1.6 schema', async () => {
+    // The one assertion that is not a restatement of the generator. It is what
+    // caught `web-app` as a component type: it reads like the obvious value and
+    // is not in the classification enum.
+    const validator = new Validation.JsonStrictValidator(Spec.Version.v1dot6)
+    expect(await validator.validate(bom())).toBeNull()
+  })
+
+  it('describes the site itself, stamped with the build time', () => {
+    const {metadata, specVersion} = JSON.parse(bom())
+    // Pinned to the schema the test above validates against, so the two cannot
+    // drift into validating 1.6 rules against a document claiming another.
+    expect(specVersion).toBe(Spec.Version.v1dot6)
+    expect(metadata.component.name).toBe('softmess.de')
+    expect(new Date(metadata.timestamp).getTime()).not.toBeNaN()
+  })
+
+  it('gives every component a resolved version and a matching purl', () => {
+    const doc = JSON.parse(bom())
+    const all = [...doc.components, ...doc.metadata.tools.components]
+    expect(all.length).toBeGreaterThan(0)
+    for (const c of all) {
+      // A range like ^5.3.0 is a fact about package.json, not about the build.
+      expect(c.version, c.name).toMatch(/^\d+\.\d+\.\d+/)
+      expect(c.purl, c.name).toBe(`pkg:npm/${c.name.replace('@', '%40')}@${c.version}`)
+    }
+    // Pinned once as a literal, because the assertion above encodes the purl
+    // the same way the generator does and would agree with it either way.
+    expect(all.map((c: {purl: string}) => c.purl)).toContain('pkg:npm/%40fontsource/outfit@5.3.0')
+  })
+
+  it('claims exactly the font packages the layout imports', () => {
+    // The direction that matters. A hand-kept list fails by omission: someone
+    // adds a font to Base.astro, several hundred more files go to visitors, and
+    // an unchanged SBOM keeps saying the site contains two — a false statement
+    // on a public transparency URL, with a green suite. Comparing the whole set
+    // against the imports catches that and the stale-entry case both.
+    const layout = readFileSync(join(import.meta.dirname, '..', 'src/layouts/Base.astro'), 'utf8')
+    const imported = new Set([...layout.matchAll(/@fontsource\/[a-z0-9-]+/g)].map((m) => m[0]))
+    expect(imported.size).toBeGreaterThan(0)
+    expect(new Set(JSON.parse(bom()).components.map((c: {name: string}) => c.name))).toEqual(
+      imported,
+    )
+  })
+
+  it('declares the CycloneDX media type, which the extensionless path cannot', () => {
+    // Workers Assets types a response by file extension and there is none, so
+    // without this rule the SBOM is served as an unknown type and no consumer
+    // can tell which format it got — the one thing RFC 9472 does require the
+    // server to signal. Read from the build, not from public/, so it also
+    // proves the rule reached the artifact.
+    const headers = readFileSync(join(DIST, '_headers'), 'utf8')
+    expect(headers).toContain('/.well-known/sbom')
+    expect(headers).toContain('Content-Type: application/vnd.cyclonedx+json')
   })
 })

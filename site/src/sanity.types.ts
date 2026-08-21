@@ -225,13 +225,6 @@ export type SiteSettings = {
   instagram?: string
   instagramHandle?: string
   copyright?: string
-  icon?: {
-    asset?: SanityImageAssetReference
-    media?: unknown
-    hotspot?: SanityImageHotspot
-    crop?: SanityImageCrop
-    _type: 'image'
-  }
   backLabel?: string
   instagramLabel?: string
   headerLinks?: Array<
@@ -377,7 +370,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../site/src/lib/content.ts
 // Variable: SITE_SETTINGS_QUERY
-// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright, icon{asset},    backLabel, instagramLabel, notFound{heading, body},    headerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    footerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    seo{title, description, language, noIndex, ogImage{alt, asset}}  }
+// Query: *[_id == "siteSettings" && _type == "siteSettings"][0]{    brand, tagline, email, instagram, instagramHandle, copyright,    backLabel, instagramLabel, notFound{heading, body},    headerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    footerLinks[defined(select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current))]{_key, "label": coalesce(label, page->title), "href": select(  linkType == "external" => href,  defined(page->slug.current) => "/" + page->slug.current)},    seo{title, description, language, noIndex, ogImage{alt, asset}}  }
 export type SITE_SETTINGS_QUERY_RESULT = {
   brand: string | null
   tagline: string | null
@@ -385,9 +378,6 @@ export type SITE_SETTINGS_QUERY_RESULT = {
   instagram: string | null
   instagramHandle: string | null
   copyright: string | null
-  icon: {
-    asset: SanityImageAssetReference | null
-  } | null
   backLabel: string | null
   instagramLabel: string | null
   notFound: {

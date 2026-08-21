@@ -122,11 +122,12 @@ export function organizationNode(settings: SiteSettings, site: URL): Record<stri
     url: site.href,
     ...(email ? {email} : {}),
     ...(instagram ? {sameAs: [instagram]} : {}),
-    // Our own route, not a cdn.sanity.io URL: 180×180 clears Google's 112×112
-    // minimum for a logo and keeps a third-party host out of the structured
-    // data. Omitted entirely when no icon is uploaded — an empty string here
-    // is worse than silence.
-    ...(settings.icon?.asset ? {logo: new URL('/apple-touch-icon.png', site).href} : {}),
+    // Our own origin, not a cdn.sanity.io URL: keeps a third-party host out of
+    // the structured data. The 512px manifest icon rather than the 180px
+    // apple-touch one — both clear Google's 112×112 minimum, and a knowledge
+    // panel has more to work with at 512. Unconditional now that the file is a
+    // static asset: there is no "not uploaded yet" state left to guard.
+    logo: new URL('/web-app-manifest-512x512.png', site).href,
   }
 }
 

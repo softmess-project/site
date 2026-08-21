@@ -166,15 +166,13 @@ describe('organization node', () => {
     expect(json.sameAs).toEqual(['https://instagram.com/softmess'])
   })
 
-  it('points logo at our own icon route, and omits it when no icon is set', () => {
-    // Our own origin, not cdn.sanity.io: 180×180 clears Google's 112×112
-    // minimum and keeps a third-party host out of the structured data.
-    const withIcon = organizationNode(settings(null, {icon: {asset: IMAGE_REF}}), SITE) as Record<
-      string,
-      unknown
-    >
-    expect(withIcon.logo).toBe('https://softmess.de/apple-touch-icon.png')
-    expect(organizationNode(settings(), SITE)).not.toHaveProperty('logo')
+  it('points logo at our own static icon, unconditionally', () => {
+    // Our own origin, not cdn.sanity.io: 512×512 clears Google's 112×112
+    // minimum and keeps a third-party host out of the structured data. No
+    // longer content, so there is no "not uploaded yet" case to omit it for —
+    // dist.test.ts is what proves the file is actually there.
+    const json = organizationNode(settings(), SITE) as Record<string, unknown>
+    expect(json.logo).toBe('https://softmess.de/web-app-manifest-512x512.png')
   })
 
   it('omits email and sameAs rather than emitting them empty', () => {

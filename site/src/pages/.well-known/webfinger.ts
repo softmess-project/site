@@ -51,7 +51,7 @@ export const GET: APIRoute = async ({locals, site}) => {
       links: links(
         profilePage,
         // Our own origin, not cdn.sanity.io — same reason the image proxy
-        // exists. /apple-touch-icon.png is already a route.
+        // exists. A static file in public/, so it is always there.
         {
           rel: 'http://webfinger.net/rel/avatar',
           type: 'image/png',

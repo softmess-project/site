@@ -341,13 +341,18 @@ policy on the next build — the wrong direction to be wrong in. `de` preserves
 exactly what ships today; setting the home page to Englisch is the one
 deliberate edit that makes the tag true again.
 
-**Upload the site icon.** *Website-Einstellungen → Marke → Website-Icon*,
-square, at least 512×512. Until then `/favicon.png` and
-`/apple-touch-icon.png` keep serving the valid 68-byte 1×1 transparent PNG
-placeholder — no broken link, no build failure, just no visible favicon in a
-browser tab or beside a mobile search result. `Organization.logo` is also
-omitted from the JSON-LD while this is unset: a blank placeholder is not a
-logo worth claiming.
+~~**Upload the site icon.**~~ Done, and the field is gone with it: the icon
+set is five static files in `site/public/`, generated in one pass, not content.
+The *Website-Icon* field could only ever produce one square PNG, while the set
+needs a multi-resolution `.ico`, an opaque apple-touch icon and two
+`purpose: maskable` manifest icons with their own safe-zone padding — five
+different preparation rules, none of them an editor's job. Removing it also
+removed the machinery that existed only to survive an empty field: `lib/icon.ts`
+with its 1×1 placeholder PNG, the two prerendered endpoints, and the
+`accept: image/png,image/jpeg` filter working around Sanity never rasterizing
+SVG. `Organization.logo` is now unconditional. Changing the icon means
+regenerating the set and deploying — which was true before, since a new icon
+needs all five variants regardless.
 
 Two smaller, unrelated notes from the same review:
 
@@ -579,9 +584,10 @@ Not built, and not because it was overlooked:
   not an alternate of the English home page — so there are no alternate pairs to
   declare. This refines `2026-08-16-page-builder-design.md`, which asserted the
   site is German throughout; that was true of the Studio, never of the copy.
-- **A separate wordmark for `Organization.logo`.** One square `icon` field
-  serves as both favicon and logo. A knowledge panel would rather have the
-  wordmark; add a second field if that ever matters.
+- **A separate wordmark for `Organization.logo`.** `logo` points at
+  `/web-app-manifest-512x512.png`, so the square app icon serves as both favicon
+  and logo. A knowledge panel would rather have the wordmark; that is another
+  static file and a one-line change in `lib/seo.ts` if it ever matters.
 - **Generated social cards.** Compositing text onto an image needs a rasterizer
   at build time and Sanity's image API cannot do it. The per-page `ogImage`
   field covers the case that matters.

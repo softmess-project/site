@@ -66,7 +66,7 @@ const LINK_PROJECTION = `[${LINK_FILTER}]{_key, "label": coalesce(label, page->t
 // document would be a serialized extra round trip on every rendered page.
 export const SITE_SETTINGS_QUERY = defineQuery(`
   *[_id == "siteSettings" && _type == "siteSettings"][0]{
-    brand, tagline, email, instagram, instagramHandle, copyright, icon{asset},
+    brand, tagline, email, instagram, instagramHandle, copyright,
     backLabel, instagramLabel, notFound{heading, body},
     headerLinks${LINK_PROJECTION},
     footerLinks${LINK_PROJECTION},

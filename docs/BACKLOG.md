@@ -361,6 +361,41 @@ Two smaller, unrelated notes from the same review:
   `prettier-plugin-astro` in use. A standing gap in the convention, not
   something this branch introduced or is fixing.
 
+### 1.8 The fediverse account WebFinger is holding a place for
+
+`/.well-known/webfinger` publishes two subjects — `acct:softmess@softmess.de`
+and `acct:moritz@softmess.de` — and answers RFC 7033 queries for both. What it
+cannot yet do is the reason most people set WebFinger up: make
+`@moritz@softmess.de` followable in Mastodon and everything else speaking
+ActivityPub. That needs an account to point at, and there isn't one.
+
+When there is, the change is entirely in
+`site/src/pages/.well-known/webfinger.ts` — `src/worker.ts` matches on whatever
+subjects the built documents declare and knows none of them by name. Two links
+go on the **personal** document, not the org one:
+
+```ts
+{rel: 'self', type: 'application/activity+json', href: '<the account's actor URL>'},
+{rel: 'http://ostatus.org/schema/1.0/subscribe',
+ template: '<the host's authorize_interaction URL>?uri={uri}'},
+```
+
+Two things worth knowing before doing it. The remote server has to be told to
+accept the alias — on Mastodon that is *Preferences → Profile → Aliases*, plus
+the redirect the account itself advertises; publishing the JRD alone gets you a
+handle that resolves and then fails to follow. And `subscribe` uses `template`
+rather than `href`, which is legal JRD and is the only link in the document
+shaped that way — so that commit also has to relax two things written for an
+all-`href` document: `dist.test.ts`'s "gives every link an absolute href", which
+would read `undefined` off it, and the `Jrd` type in `src/worker.ts`, where
+`href` is required.
+
+The Instagram `rel="me"` deliberately stays on the org document only:
+`rel="me"` asserts that two URIs are the same entity, and that account is the
+project's. `dist.test.ts` guards the direction that overclaims by accident — an
+org account leaking onto the *personal* subject — and cannot see a personal
+account added to the org document, so that one is on the author.
+
 ---
 
 ## 2. Answered

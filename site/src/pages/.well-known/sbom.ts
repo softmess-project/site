@@ -46,8 +46,12 @@ function component(pkg: Manifest, type: 'library' | 'application') {
     name: pkg.name,
     version: pkg.version,
     // The npm purl type percent-encodes the scope's `@`, which appears only as
-    // the first character of a scoped name.
-    purl: `pkg:npm/${pkg.name.replace('@', '%40')}@${pkg.version}`,
+    // the first character of a scoped name — so `replace` would do, and
+    // `replaceAll` is not fixing a reachable bug. It is here because
+    // js/incomplete-sanitization flags the single-occurrence form as a high
+    // alert, and an invariant CodeQL cannot see is a worse thing to argue with
+    // than a one-word change. Do not simplify it back.
+    purl: `pkg:npm/${pkg.name.replaceAll('@', '%40')}@${pkg.version}`,
     // Every package listed above carries a plain SPDX identifier (MIT,
     // OFL-1.1); one whose `license` is an expression would need CycloneDX's
     // `expression` form instead, so check before adding it.

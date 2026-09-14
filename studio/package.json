@@ -19,17 +19,17 @@
     "sanity"
   ],
   "dependencies": {
-    "@sanity/icons": "^5.2.1",
-    "@sanity/locale-de-de": "^1.1.36",
-    "@sanity/vision": "^6.10.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "sanity": "^6.10.1",
+    "@sanity/icons": "^5.2.2",
+    "@sanity/locale-de-de": "^1.1.37",
+    "@sanity/vision": "^6.13.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sanity": "^6.13.1",
     "styled-components": "^6.5.3"
   },
   "devDependencies": {
     "@sanity/eslint-config-studio": "^6.0.0",
-    "@types/react": "^19.2.18",
+    "@types/react": "^19.3.0",
     "eslint": "^9.39.5",
     "groq-js": "^2.0.0",
     "prettier": "^3.9.6",

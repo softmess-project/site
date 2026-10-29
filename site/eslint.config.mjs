@@ -17,4 +17,26 @@ export default [
     files: ['*.mjs', '*.ts', 'test/**', 'scripts/**'],
     languageOptions: {globals: {process: 'readonly', console: 'readonly'}},
   },
+  // Queries live in content.ts only: typegen scans *.ts, never .astro. And
+  // stegaClean goes through pick() only: on Portable Text it strips the
+  // visual-editing overlay markers.
+  {
+    files: ['src/**'],
+    ignores: ['src/lib/content.ts', 'src/lib/variants.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {name: 'groq', message: 'Define GROQ queries in src/lib/content.ts.'},
+            {
+              name: '@sanity/client/stega',
+              importNames: ['stegaClean'],
+              message: 'Use pick() from src/lib/variants.ts; never stegaClean Portable Text.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]
